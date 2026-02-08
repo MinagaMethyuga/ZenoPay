@@ -17,7 +17,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'ZenoPay',
       debugShowCheckedModeBanner: false,
-      initialRoute: '/ZenoChallenge',
+      initialRoute: '/home',
       routes: {
         '/home': (context) => const Home(),
         '/login': (context) => const Login(),
