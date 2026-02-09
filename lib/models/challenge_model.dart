@@ -9,6 +9,10 @@ class Challenge {
   final String frequency;
   final int xpReward;
   final bool unlockBadge;
+
+  // ✅ NEW: badge image url from backend (Challenge::$appends)
+  final String? badgeImageUrl;
+
   final String? icon;
   final String? targetType;
   final String? targetValue;
@@ -30,6 +34,7 @@ class Challenge {
     required this.frequency,
     required this.xpReward,
     required this.unlockBadge,
+    this.badgeImageUrl, // ✅ NEW
     this.icon,
     this.targetType,
     this.targetValue,
@@ -53,6 +58,10 @@ class Challenge {
       frequency: json['frequency'] as String,
       xpReward: json['xp_reward'] as int,
       unlockBadge: (json['unlock_badge'] == 1 || json['unlock_badge'] == true),
+
+      // ✅ reads the appended field coming from Laravel
+      badgeImageUrl: json['badge_image_url'] as String?,
+
       icon: json['icon'] as String?,
       targetType: json['target_type'] as String?,
       targetValue: json['target_value'] as String?,
@@ -67,7 +76,6 @@ class Challenge {
     );
   }
 
-  // Get icon for category
   IconData getCategoryIcon() {
     switch (category) {
       case 'Income':
@@ -85,7 +93,6 @@ class Challenge {
     }
   }
 
-  // Get color for difficulty
   Color getDifficultyColor() {
     switch (difficulty) {
       case 'Easy':
@@ -101,7 +108,6 @@ class Challenge {
     }
   }
 
-  // Get color for category
   Color getCategoryColor() {
     switch (category) {
       case 'Income':
@@ -119,8 +125,74 @@ class Challenge {
     }
   }
 
-  // Get background color for category
   Color getCategoryBgColor() {
     return getCategoryColor().withValues(alpha: 0.1);
+  }
+
+  /// Parse target_value from API (may be numeric string or number) to int.
+  static int? parseTargetValue(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is String) {
+      final n = int.tryParse(value.trim());
+      if (n != null) return n;
+      final d = double.tryParse(value.trim());
+      return d?.round();
+    }
+    if (value is double) return value.round();
+    return null;
+  }
+}
+
+/// Status for a challenge accepted by the user (from /api/my-challenges).
+class MyChallengeStatus {
+  final String status; // 'active' | 'completed'
+  final int progress;
+  final int? targetValue;
+
+  MyChallengeStatus({
+    required this.status,
+    required this.progress,
+    this.targetValue,
+  });
+}
+
+/// One item from GET /api/my-challenges (user_challenge + challenge).
+class UserChallengeItem {
+  final int userChallengeId;
+  final String status;
+  final int progress;
+  final DateTime? acceptedAt;
+  final DateTime? completedAt;
+  final Challenge challenge;
+
+  UserChallengeItem({
+    required this.userChallengeId,
+    required this.status,
+    required this.progress,
+    this.acceptedAt,
+    this.completedAt,
+    required this.challenge,
+  });
+
+  static UserChallengeItem fromJson(Map<String, dynamic> json) {
+    final uc = json['user_challenge'] as Map<String, dynamic>? ?? {};
+    final ch = json['challenge'] as Map<String, dynamic>? ?? {};
+    return UserChallengeItem(
+      userChallengeId: uc['id'] as int? ?? 0,
+      status: uc['status'] as String? ?? 'active',
+      progress: (uc['progress'] is int) ? uc['progress'] as int : int.tryParse(uc['progress']?.toString() ?? '0') ?? 0,
+      acceptedAt: uc['accepted_at'] != null ? DateTime.tryParse(uc['accepted_at'].toString()) : null,
+      completedAt: uc['completed_at'] != null ? DateTime.tryParse(uc['completed_at'].toString()) : null,
+      challenge: Challenge.fromJson(Map<String, dynamic>.from(ch)),
+    );
+  }
+
+  MyChallengeStatus toMyChallengeStatus() {
+    return MyChallengeStatus(
+      status: status,
+      progress: progress,
+      targetValue: Challenge.parseTargetValue(challenge.targetValue),
+    );
   }
 }

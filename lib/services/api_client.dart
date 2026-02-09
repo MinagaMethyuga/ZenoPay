@@ -17,7 +17,10 @@ class ApiClient {
     if (_cookieJar == null) {
       final dir = await getApplicationDocumentsDirectory();
       final cookiePath = "${dir.path}${Platform.pathSeparator}cookies";
-      _cookieJar = PersistCookieJar(storage: FileStorage(cookiePath));
+      _cookieJar = PersistCookieJar(
+        ignoreExpires: true,
+        storage: FileStorage(cookiePath),
+      );
     }
 
     final d = Dio(BaseOptions(

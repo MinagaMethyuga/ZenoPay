@@ -18,6 +18,8 @@ class _ChallengesPageState extends State<ChallengesPage> {
   List<Challenge> allChallenges = [];
   List<Challenge> dailyChallenges = [];
   List<Challenge> activeChallenges = [];
+  /// challengeId -> status + progress + target (from /api/my-challenges)
+  Map<int, MyChallengeStatus> acceptedMap = {};
   bool isLoading = true;
   int totalXP = 0;
   int streakDays = 12;
@@ -33,13 +35,31 @@ class _ChallengesPageState extends State<ChallengesPage> {
     setState(() => isLoading = true);
 
     try {
-      final challenges = await _challengeService.getActiveChallenges();
+      final catalog = await _challengeService.getActiveChallenges();
+      List<UserChallengeItem> myActive = [];
+      List<UserChallengeItem> myCompleted = [];
+      try {
+        myActive = (await _challengeService.getMyChallenges('active')).cast<UserChallengeItem>();
+      } catch (_) {}
+      try {
+        myCompleted = (await _challengeService.getMyChallenges('completed')).cast<UserChallengeItem>();
+      } catch (_) {}
+
+      final Map<int, MyChallengeStatus> merged = {};
+      for (final item in myActive) {
+        merged[item.challenge.id] = item.toMyChallengeStatus();
+      }
+      for (final item in myCompleted) {
+        merged[item.challenge.id] = item.toMyChallengeStatus();
+      }
+
       if (!mounted) return;
       setState(() {
-        allChallenges = challenges.cast<Challenge>();
-        dailyChallenges = challenges.where((c) => c.frequency == 'Daily').cast<Challenge>().toList();
-        activeChallenges = challenges.where((c) => c.frequency != 'Daily').cast<Challenge>().toList();
-        totalXP = challenges.fold(0, (sum, c) => sum + c.xpReward);
+        allChallenges = catalog.cast<Challenge>();
+        dailyChallenges = catalog.where((c) => c.frequency == 'Daily').cast<Challenge>().toList();
+        activeChallenges = catalog.where((c) => c.frequency != 'Daily').cast<Challenge>().toList();
+        acceptedMap = merged;
+        totalXP = catalog.fold(0, (sum, c) => sum + c.xpReward);
         isLoading = false;
       });
     } catch (e) {
@@ -120,62 +140,80 @@ class _ChallengesPageState extends State<ChallengesPage> {
 
   Widget _buildAppBar() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(8),
+            width: 44,
+            height: 44,
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+                colors: [Color(0xFF8B5CF6), Color(0xFF6366F1)],
               ),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: const Icon(
+              Icons.emoji_events_rounded,
+              color: Colors.white,
+              size: 26,
+            ),
+          ),
+          const SizedBox(width: 12),
+          const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Challenges',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1E293B),
+                ),
+              ),
+              Text(
+                'Complete quests & earn rewards',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Color(0xFF64748B),
+                ),
+              ),
+            ],
+          ),
+          const Spacer(),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF1F5F9),
+              borderRadius: BorderRadius.circular(20),
             ),
             child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: const [
-                Icon(Icons.emoji_events, color: Colors.white, size: 16),
-                SizedBox(width: 4),
+              children: [
+                const Icon(
+                  Icons.local_fire_department_rounded,
+                  color: Color(0xFFF97316),
+                  size: 18,
+                ),
+                const SizedBox(width: 4),
                 Text(
-                  'Lvl5',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
+                  '$streakDays',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF1E293B),
                   ),
                 ),
               ],
             ),
-          ),
-          const SizedBox(width: 12),
-          const Text(
-            'Challenges',
-            style: TextStyle(
-              color: Color(0xFF0F172A),
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const Spacer(),
-          Stack(
-            children: [
-              IconButton(
-                icon: const Icon(Icons.notifications_outlined, color: Color(0xFF0F172A)),
-                onPressed: () {},
-              ),
-              Positioned(
-                right: 12,
-                top: 12,
-                child: Container(
-                  width: 8,
-                  height: 8,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFEF4444),
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ),
-            ],
           ),
         ],
       ),
@@ -186,48 +224,89 @@ class _ChallengesPageState extends State<ChallengesPage> {
     return Row(
       children: [
         Expanded(
-          child: _buildStatCard(
-            icon: Icons.emoji_events,
-            label: 'TOTAL\nXP',
-            value: totalXP.toString(),
-            color: const Color(0xFF8B5CF6),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF10B981), Color(0xFF059669)],
+              ),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.star_rounded, color: Colors.white, size: 24),
+                SizedBox(height: 8),
+                Text(
+                  'Total XP',
+                  style: TextStyle(color: Colors.white70, fontSize: 13),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  'Earn More!',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
         const SizedBox(width: 12),
         Expanded(
-          child: _buildStatCard(
-            icon: Icons.local_fire_department,
-            label: 'STREAK',
-            value: streakDays.toString(),
-            subtitle: 'days',
-            color: const Color(0xFF14B8A6),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF8B5CF6), Color(0xFF6366F1)],
+              ),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.bolt_rounded, color: Colors.white, size: 24),
+                const SizedBox(height: 8),
+                const Text(
+                  'Rewards',
+                  style: TextStyle(color: Colors.white70, fontSize: 13),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '$totalXP XP',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _buildGiftCard(),
         ),
       ],
     );
   }
 
   Widget _buildWelcomeMessage() {
-    return RichText(
-      text: TextSpan(
-        style: const TextStyle(
-          fontSize: 24,
-          fontWeight: FontWeight.bold,
-          color: Color(0xFF0F172A),
-          height: 1.3,
-        ),
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF1F5F9),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: const Row(
         children: [
-          const TextSpan(text: 'Hello, Student!\n'),
-          const TextSpan(text: 'You have '),
-          TextSpan(
-            text: '${allChallenges.length} active challenges',
-            style: const TextStyle(color: Color(0xFF8B5CF6)),
+          Icon(Icons.tips_and_updates_rounded, color: Color(0xFF6366F1)),
+          SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'Complete daily quests to maintain your streak and earn bonus rewards!',
+              style: TextStyle(color: Color(0xFF334155), fontSize: 14),
+            ),
           ),
-          const TextSpan(text: '.'),
         ],
       ),
     );
@@ -242,21 +321,21 @@ class _ChallengesPageState extends State<ChallengesPage> {
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: Color(0xFF0F172A),
+            color: Color(0xFF1E293B),
           ),
         ),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
-            color: const Color(0xFFF3E8FF),
+            color: const Color(0xFFFEF3C7),
             borderRadius: BorderRadius.circular(12),
           ),
           child: const Text(
-            'Resets in 4h',
+            'Refreshes Daily',
             style: TextStyle(
-              color: Color(0xFF9333EA),
               fontSize: 12,
               fontWeight: FontWeight.w600,
+              color: Color(0xFF92400E),
             ),
           ),
         ),
@@ -266,22 +345,19 @@ class _ChallengesPageState extends State<ChallengesPage> {
 
   Widget _buildDailyQuestsList() {
     if (dailyChallenges.isEmpty) {
-      return Container(
-        height: 240,
-        alignment: Alignment.center,
-        child: const Text(
-          'No daily challenges available',
+      return const Center(
+        child: Text(
+          'No daily quests available right now.',
           style: TextStyle(color: Color(0xFF64748B)),
         ),
       );
     }
 
     return SizedBox(
-      height: 245, // Increased from 240 to prevent overflow
-      child: ListView.separated(
+      height: 190,
+      child: ListView.builder(
         scrollDirection: Axis.horizontal,
         itemCount: dailyChallenges.length,
-        separatorBuilder: (context, index) => const SizedBox(width: 12),
         itemBuilder: (context, index) {
           final challenge = dailyChallenges[index];
           return _buildDailyQuestCard(challenge: challenge);
@@ -290,38 +366,135 @@ class _ChallengesPageState extends State<ChallengesPage> {
     );
   }
 
-  Widget _buildTabSelector() {
+  Widget _buildDailyQuestCard({required Challenge challenge}) {
     return Container(
-      padding: const EdgeInsets.all(4),
+      width: 220,
+      margin: const EdgeInsets.only(right: 16),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFE2E8F0),
-        borderRadius: BorderRadius.circular(12),
+        gradient: const LinearGradient(
+          colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildTab('Active'),
-          _buildTab('Completed'),
-          _buildTab('Suggested'),
+          Text(
+            challenge.icon ?? "🎯",
+            style: const TextStyle(fontSize: 28),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            challenge.name,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            challenge.description,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 12,
+              color: Colors.white70,
+            ),
+          ),
+          const Spacer(),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Text(
+                  '+${challenge.xpReward} XP',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              const Spacer(),
+              Icon(
+                challenge.unlockBadge ? Icons.workspace_premium_rounded : Icons.star_rounded,
+                color: Colors.white,
+                size: 20,
+              ),
+            ],
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildActiveChallengesList() {
-    if (activeChallenges.isEmpty) {
-      return const Center(
-        child: Padding(
-          padding: EdgeInsets.all(32.0),
-          child: Text(
-            'No active challenges',
-            style: TextStyle(color: Color(0xFF64748B)),
+  Widget _buildTabSelector() {
+    final tabs = ['Active', 'Daily', 'All'];
+
+    return Row(
+      children: tabs.map((tab) {
+        final isSelected = selectedTab == tab;
+        return Expanded(
+          child: GestureDetector(
+            onTap: () => setState(() => selectedTab = tab),
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              decoration: BoxDecoration(
+                color: isSelected ? const Color(0xFF6366F1) : Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: isSelected ? const Color(0xFF6366F1) : const Color(0xFFE2E8F0),
+                ),
+              ),
+              child: Center(
+                child: Text(
+                  tab,
+                  style: TextStyle(
+                    color: isSelected ? Colors.white : const Color(0xFF64748B),
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            ),
           ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildActiveChallengesList() {
+    List<Challenge> challenges;
+
+    if (selectedTab == 'Daily') {
+      challenges = dailyChallenges;
+    } else if (selectedTab == 'All') {
+      challenges = allChallenges;
+    } else {
+      challenges = activeChallenges;
+    }
+
+    if (challenges.isEmpty) {
+      return const Center(
+        child: Text(
+          'No challenges available.',
+          style: TextStyle(color: Color(0xFF64748B)),
         ),
       );
     }
 
     return Column(
-      children: activeChallenges.map((challenge) {
+      children: challenges.map((challenge) {
         return Padding(
           padding: const EdgeInsets.only(bottom: 12),
           child: _buildChallengeCard(challenge: challenge),
@@ -331,154 +504,20 @@ class _ChallengesPageState extends State<ChallengesPage> {
   }
 
   Widget _buildAdaptiveChallengesSection() {
-    final suggested = allChallenges.where((c) =>
-    c.frequency != 'Daily' && !activeChallenges.contains(c)
-    ).toList();
-
-    if (suggested.isEmpty) return const SizedBox.shrink();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Adaptive Challenges for You',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF0F172A),
-          ),
-        ),
-        const SizedBox(height: 16),
-        ...suggested.map((challenge) => _buildAdaptiveChallengeCard(challenge: challenge)),
-      ],
-    );
-  }
-
-  Widget _buildDailyQuestCard({required Challenge challenge}) {
     return Container(
-      width: 240,
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 15,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        color: const Color(0xFFF1F5F9),
+        borderRadius: BorderRadius.circular(16),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: const Row(
         children: [
-          Stack(
-            children: [
-              ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-                child: Container(
-                  height: 95, // Reduced from 100
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        challenge.getCategoryColor().withValues(alpha: 0.3),
-                        challenge.getCategoryColor().withValues(alpha: 0.1),
-                      ],
-                    ),
-                  ),
-                  child: Icon(
-                    challenge.getCategoryIcon(),
-                    size: 45, // Reduced from 50
-                    color: challenge.getCategoryColor(),
-                  ),
-                ),
-              ),
-              Positioned(
-                top: 8,
-                right: 8,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.6),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.bolt, color: Color(0xFFFBBF24), size: 14),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${challenge.xpReward} XP',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-          Padding(
-            padding: const EdgeInsets.all(12), // Reduced from 14
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  challenge.name,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF0F172A),
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 3), // Reduced from 4
-                Text(
-                  challenge.description,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Color(0xFF64748B),
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 8), // Reduced from 10
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Challenge "${challenge.name}" accepted!'),
-                          backgroundColor: const Color(0xFF10B981),
-                        ),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF6366F1),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 9), // Reduced from 10
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      elevation: 0,
-                    ),
-                    child: const Text(
-                      'Accept Quest',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+          Icon(Icons.auto_awesome_rounded, color: Color(0xFF8B5CF6)),
+          SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'More adaptive challenges coming soon based on your spending patterns.',
+              style: TextStyle(color: Color(0xFF334155), fontSize: 14),
             ),
           ),
         ],
@@ -505,18 +544,20 @@ class _ChallengesPageState extends State<ChallengesPage> {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(12),
+                width: 54, // Reduced from 56
+                height: 54, // Reduced from 56
                 decoration: BoxDecoration(
-                  color: challenge.getCategoryBgColor(),
-                  borderRadius: BorderRadius.circular(12),
+                  color: const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                child: Icon(
-                  challenge.getCategoryIcon(),
-                  color: challenge.getCategoryColor(),
-                  size: 24,
+                child: Center(
+                  child: Text(
+                    challenge.icon ?? "🎯",
+                    style: const TextStyle(fontSize: 26),
+                  ),
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 12), // Reduced from 14
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -524,77 +565,130 @@ class _ChallengesPageState extends State<ChallengesPage> {
                     Text(
                       challenge.name,
                       style: const TextStyle(
-                        fontSize: 16,
+                        fontSize: 15, // Reduced from 16
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF0F172A),
+                        color: Color(0xFF1E293B),
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    Text(
-                      '${challenge.category} • ${challenge.difficulty}',
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: Color(0xFF64748B),
-                      ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        _buildBadge(
+                          challenge.difficulty,
+                          _getDifficultyColor(challenge.difficulty),
+                        ),
+                        const SizedBox(width: 6), // Reduced from 8
+                        _buildBadge(
+                          '+${challenge.xpReward} XP',
+                          const Color(0xFF10B981),
+                        ),
+                        if (challenge.unlockBadge) ...[
+                          const SizedBox(width: 6),
+                          const Icon(
+                            Icons.workspace_premium_rounded,
+                            color: Color(0xFFF59E0B),
+                            size: 18,
+                          ),
+                        ],
+                      ],
                     ),
                   ],
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF10B981),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  '+${challenge.xpReward} XP',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
+            ],
+          ),
+          const SizedBox(height: 12), // Reduced from 14
+          Text(
+            challenge.description,
+            style: const TextStyle(
+              fontSize: 13, // Reduced from 14
+              color: Color(0xFF64748B),
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+          if (acceptedMap[challenge.id] != null) ...[
+            const SizedBox(height: 10),
+            _buildProgressSection(acceptedMap[challenge.id]!),
+          ],
+          const SizedBox(height: 8), // Reduced from 10
+          SizedBox(
+            width: double.infinity,
+            child: _buildChallengeCardButton(challenge),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProgressSection(MyChallengeStatus s) {
+    final target = s.targetValue;
+    final hasTarget = target != null && target > 0;
+    final fraction = hasTarget ? (s.progress / target).clamp(0.0, 1.0) : 0.0;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    s.status == 'completed'
+                        ? Icons.check_circle_rounded
+                        : Icons.trending_up_rounded,
+                    size: 16,
+                    color: s.status == 'completed'
+                        ? const Color(0xFF10B981)
+                        : const Color(0xFF6366F1),
                   ),
+                  const SizedBox(width: 6),
+                  Text(
+                    s.status == 'completed' ? 'Completed' : 'In progress',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: s.status == 'completed'
+                          ? const Color(0xFF10B981)
+                          : const Color(0xFF6366F1),
+                    ),
+                  ),
+                ],
+              ),
+              Text(
+                hasTarget ? '${s.progress} / $target' : '${s.progress}',
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF64748B),
                 ),
               ),
             ],
           ),
-          if (challenge.targetValue != null || challenge.duration != null) ...[
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                if (challenge.targetValue != null)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF1F5F9),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      challenge.targetValue!,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF64748B),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                if (challenge.duration != null) ...[
-                  const SizedBox(width: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF1F5F9),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      challenge.duration!,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF64748B),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
-              ],
+          if (hasTarget) ...[
+            const SizedBox(height: 8),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: LinearProgressIndicator(
+                value: fraction,
+                minHeight: 6,
+                backgroundColor: const Color(0xFFE2E8F0),
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  s.status == 'completed'
+                      ? const Color(0xFF10B981)
+                      : const Color(0xFF6366F1),
+                ),
+              ),
             ),
           ],
         ],
@@ -602,257 +696,95 @@ class _ChallengesPageState extends State<ChallengesPage> {
     );
   }
 
-  Widget _buildAdaptiveChallengeCard({required Challenge challenge}) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: challenge.getCategoryBgColor(),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  challenge.getCategoryIcon(),
-                  color: challenge.getCategoryColor(),
-                  size: 24,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  challenge.name,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF0F172A),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            challenge.description,
-            style: const TextStyle(
-              fontSize: 13,
-              color: Color(0xFF64748B),
-              height: 1.4,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                '+${challenge.xpReward} XP Reward',
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF14B8A6),
-                ),
-              ),
-              TextButton(
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Challenge "${challenge.name}" accepted!'),
-                      backgroundColor: const Color(0xFF10B981),
-                    ),
-                  );
-                },
-                style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-                child: const Text(
-                  'Accept Challenge',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF0F172A),
-                    decoration: TextDecoration.underline,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
+  Widget _buildChallengeCardButton(Challenge challenge) {
+    final my = acceptedMap[challenge.id];
+    final isActive = my?.status == 'active';
+    final isCompleted = my?.status == 'completed';
+    final isAccepted = isActive || isCompleted;
 
-  Widget _buildStatCard({
-    required IconData icon,
-    required String label,
-    required String value,
-    String? subtitle,
-    required Color color,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: color, size: 20),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 10,
-              color: Color(0xFF64748B),
-              fontWeight: FontWeight.w600,
-              height: 1.2,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                value,
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF0F172A),
-                ),
-              ),
-              if (subtitle != null) ...[
-                const SizedBox(width: 4),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 2),
-                  child: Text(
-                    subtitle,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFF64748B),
-                      fontWeight: FontWeight.w500,
-                    ),
+    String label;
+    if (isCompleted) {
+      label = 'Completed';
+    } else if (isActive) {
+      label = 'Accepted';
+    } else {
+      label = 'Accept Quest';
+    }
+
+    return ElevatedButton(
+      onPressed: isAccepted
+          ? null
+          : () async {
+              try {
+                await _challengeService.acceptQuest(challenge.id);
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Challenge "${challenge.name}" accepted!'),
+                    backgroundColor: const Color(0xFF10B981),
                   ),
-                ),
-              ],
-            ],
-          ),
-        ],
+                );
+                await _loadChallenges();
+              } catch (e) {
+                debugPrint("Accept quest error: $e");
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text("Failed to accept quest."),
+                    backgroundColor: Color(0xFFEF4444),
+                  ),
+                );
+              }
+            },
+      style: ElevatedButton.styleFrom(
+        backgroundColor: const Color(0xFF6366F1),
+        foregroundColor: Colors.white,
+        disabledBackgroundColor: const Color(0xFFE2E8F0),
+        disabledForegroundColor: const Color(0xFF64748B),
+        padding: const EdgeInsets.symmetric(vertical: 9),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        elevation: 0,
       ),
-    );
-  }
-
-  Widget _buildGiftCard() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Icon(Icons.card_giftcard, color: Color(0xFF14B8A6), size: 20),
-          const SizedBox(height: 8),
-          const Text(
-            'NEXT\nGIFT',
-            style: TextStyle(
-              fontSize: 10,
-              color: Color(0xFF64748B),
-              fontWeight: FontWeight.w600,
-              height: 1.2,
-            ),
-          ),
-          const SizedBox(height: 8),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: LinearProgressIndicator(
-              value: 0.75,
-              minHeight: 6,
-              backgroundColor: const Color(0xFFE2E8F0),
-              valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF14B8A6)),
-            ),
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            '75%',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF14B8A6),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTab(String title) {
-    final isSelected = selectedTab == title;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () {
-          setState(() {
-            selectedTab = title;
-          });
-        },
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          decoration: BoxDecoration(
-            color: isSelected ? Colors.white : Colors.transparent,
-            borderRadius: BorderRadius.circular(10),
-            boxShadow: isSelected
-                ? [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ]
-                : null,
-          ),
-          child: Text(
-            title,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-              color: isSelected ? const Color(0xFF6366F1) : const Color(0xFF64748B),
-            ),
-          ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
         ),
       ),
     );
+  }
+
+  Widget _buildBadge(String text, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5), // Reduced from 6
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          color: color,
+        ),
+      ),
+    );
+  }
+
+  Color _getDifficultyColor(String difficulty) {
+    switch (difficulty.toLowerCase()) {
+      case 'easy':
+        return const Color(0xFF10B981);
+      case 'medium':
+        return const Color(0xFFF59E0B);
+      case 'hard':
+        return const Color(0xFFEF4444);
+      default:
+        return const Color(0xFF64748B);
+    }
   }
 }
