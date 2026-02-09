@@ -3,13 +3,10 @@ import "package:flutter/material.dart";
 import "package:http/http.dart" as http;
 
 import "package:zenopay/Components/CustomBottomNav.dart";
-import "package:zenopay/Components/add_transaction_page.dart";
+import "package:zenopay/Components/add_transaction_page.dart" hide IconRegistry;
 
-// If you created these (recommended):
-// lib/core/config.dart
-// lib/core/icon_registry.dart
-import "package:zenopay/core/config.dart" hide AppConfig;
-import "package:zenopay/core/icon_registry.dart" hide IconRegistry;
+import "package:zenopay/core/config.dart";
+import "package:zenopay/core/icon_registry.dart";
 
 class Home extends StatefulWidget {
   const Home({super.key});
@@ -135,8 +132,8 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    const Color(0xFFE0E7FF).withOpacity(0.6),
-                    const Color(0xFFF5F3FF).withOpacity(0.4),
+                    const Color(0xFFE0E7FF).withValues(alpha: 0.6),
+                    const Color(0xFFF5F3FF).withValues(alpha: 0.4),
                     Colors.transparent,
                   ],
                 ),
@@ -200,14 +197,14 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.72),
+        color: Colors.white.withValues(alpha: 0.72),
         border: Border(
-          bottom: BorderSide(color: Colors.white.withOpacity(0.25)),
+          bottom: BorderSide(color: Colors.white.withValues(alpha: 0.25)),
         ),
       ),
       child: Row(
         children: [
-          // Avatar
+          // Avatar (safe fallback if asset doesn't exist)
           Container(
             width: 48,
             height: 48,
@@ -216,13 +213,20 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
               border: Border.all(color: const Color(0xFF8B5CF6), width: 3),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF8B5CF6).withOpacity(0.25),
+                  color: const Color(0xFF8B5CF6).withValues(alpha: 0.25),
                   blurRadius: 16,
                 ),
               ],
-              image: const DecorationImage(
-                image: AssetImage("assets/avatar.png"),
+            ),
+            child: ClipOval(
+              child: Image.asset(
+                "assets/avatar.png",
                 fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => Container(
+                  color: const Color(0xFFEEF2FF),
+                  alignment: Alignment.center,
+                  child: const Icon(Icons.person, color: Color(0xFF64748B)),
+                ),
               ),
             ),
           ),
@@ -286,7 +290,7 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
               color: Colors.white,
               borderRadius: BorderRadius.circular(24),
               border: Border.all(color: const Color(0xFFF1F5F9)),
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 6)],
+              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 6)],
             ),
             child: const Row(
               children: [
@@ -349,7 +353,7 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
                 child: Container(
                   padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.6),
+                    color: Colors.white.withValues(alpha: 0.6),
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: const Icon(Icons.close, size: 16, color: Color(0xFF10B981)),
@@ -463,7 +467,7 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: const Color(0xFFF1F5F9)),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 18, offset: const Offset(0, 6))],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 18, offset: const Offset(0, 6))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -512,7 +516,7 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: shortcuts.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 10),
+            separatorBuilder: (_, index) => const SizedBox(width: 10),
             itemBuilder: (_, i) {
               final s = shortcuts[i];
               final Color c = s["color"] as Color;
@@ -530,7 +534,7 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
                         userId: userId,
                         presetCategoryName: name,
                         presetCategoryIconKey: iconKey,
-                        presetCategoryColorValue: c.value,
+                        presetCategoryColorValue: c.toARGB32(),
                         presetCategoryType: CategoryType.expense,
                       ),
                     ),
@@ -540,12 +544,12 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 14),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.92),
+                    color: Colors.white.withValues(alpha: 0.92),
                     borderRadius: BorderRadius.circular(18),
                     border: Border.all(color: const Color(0xFFE2E8F0)),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.03),
+                        color: Colors.black.withValues(alpha: 0.03),
                         blurRadius: 16,
                         offset: const Offset(0, 8),
                       ),
@@ -557,7 +561,7 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
                         width: 34,
                         height: 34,
                         decoration: BoxDecoration(
-                          color: c.withOpacity(0.16),
+                          color: c.withValues(alpha: 0.16),
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
@@ -633,16 +637,16 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
         decoration: BoxDecoration(
           gradient: LinearGradient(colors: colors),
           borderRadius: BorderRadius.circular(18),
-          boxShadow: [BoxShadow(color: colors.first.withOpacity(0.25), blurRadius: 18)],
+          boxShadow: [BoxShadow(color: colors.first.withValues(alpha: 0.25), blurRadius: 18)],
         ),
         child: Column(
           children: [
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.22),
+                color: Colors.white.withValues(alpha: 0.22),
                 borderRadius: BorderRadius.circular(999),
-                border: Border.all(color: Colors.white.withOpacity(0.3)),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
               ),
               child: Icon(icon, color: Colors.white, size: 22),
             ),
@@ -664,7 +668,7 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
         color: Colors.white,
         borderRadius: BorderRadius.circular(22),
         border: Border.all(color: const Color(0xFFF1F5F9)),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 18, offset: const Offset(0, 6))],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 18, offset: const Offset(0, 6))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -735,7 +739,7 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
     final note = (t["note"] ?? "").toString();
 
     final color = isIncome ? const Color(0xFF10B981) : const Color(0xFFEF4444);
-    final bg = color.withOpacity(0.10);
+    final bg = color.withValues(alpha: 0.10);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -846,7 +850,7 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
               Container(
                 width: 42,
                 height: 42,
-                decoration: BoxDecoration(color: color.withOpacity(0.12), shape: BoxShape.circle),
+                decoration: BoxDecoration(color: color.withValues(alpha: 0.12), shape: BoxShape.circle),
                 child: Icon(icon, color: color),
               ),
               const SizedBox(width: 12),

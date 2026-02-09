@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:zenopay/services/auth_api.dart';
 
 class Login extends StatefulWidget {
   const Login({super.key});
@@ -9,12 +10,47 @@ class Login extends StatefulWidget {
 }
 
 class _LoginState extends State<Login> {
-  // Text controllers
+  final AuthApi api = AuthApi();
+
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
-  // Password visibility toggle
   bool _obscurePassword = true;
+  bool _loading = false;
+
+  void _toast(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg), behavior: SnackBarBehavior.floating),
+    );
+  }
+
+  Future<void> _doLogin() async {
+    final email = _emailController.text.trim();
+    final pass = _passwordController.text;
+
+    if (email.isEmpty || pass.isEmpty) {
+      _toast("Enter email and password");
+      return;
+    }
+
+    setState(() => _loading = true);
+    try {
+      await api.login(email, pass);
+      if (!mounted) return;
+      Navigator.pushNamedAndRemoveUntil(context, '/home', (r) => false);
+    } catch (e) {
+      _toast("Login failed: $e");
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -42,72 +78,61 @@ class _LoginState extends State<Login> {
               ),
               const SizedBox(height: 40),
 
-              // Email Field
               TextField(
                 controller: _emailController,
                 decoration: InputDecoration(
-                  labelText: "Email or Username",
+                  labelText: "Email",
                   labelStyle: const TextStyle(color: Colors.green),
-                  prefixIcon: const Icon(Icons.email,color: Colors.green,),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(25.0),
-                  ),
+                  prefixIcon: const Icon(Icons.email, color: Colors.green),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(25.0)),
                 ),
               ),
               const SizedBox(height: 20),
 
-              // Password Field
               TextField(
                 controller: _passwordController,
                 obscureText: _obscurePassword,
                 decoration: InputDecoration(
                   labelText: "Password",
                   labelStyle: const TextStyle(color: Colors.green),
-                  prefixIcon: const Icon(Icons.lock,color: Colors.green,),
+                  prefixIcon: const Icon(Icons.lock, color: Colors.green),
                   suffixIcon: IconButton(
                     icon: Icon(
                       _obscurePassword ? Icons.visibility_off : Icons.visibility,
-                    color: Colors.lightGreen,),
-                    onPressed: () {
-                      setState(() {
-                        _obscurePassword = !_obscurePassword;
-                      });
-                    },
+                      color: Colors.lightGreen,
+                    ),
+                    onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                   ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(25.0),
-                  ),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(25.0)),
                 ),
               ),
               const SizedBox(height: 3),
 
-              // Forgot Password
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton(
-                  onPressed: () {
-                    // Add forgot password logic
-                  },
-                  child: const Text("Forgot Password?",style: TextStyle(color: Colors.green),),
+                  onPressed: () {},
+                  child: const Text("Forgot Password?", style: TextStyle(color: Colors.green)),
                 ),
               ),
               const SizedBox(height: 15),
 
-              // Login Button
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.pushNamed(context, '/home');
-                  },
+                  onPressed: _loading ? null : _doLogin,
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16.0),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30.0),
-                    ),
-                    backgroundColor: CupertinoColors.activeGreen, // Green color
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30.0)),
+                    backgroundColor: CupertinoColors.activeGreen,
                   ),
-                  child: const Text(
+                  child: _loading
+                      ? const SizedBox(
+                    height: 18,
+                    width: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                      : const Text(
                     "Login",
                     style: TextStyle(fontSize: 18, color: Colors.black),
                   ),
@@ -118,30 +143,19 @@ class _LoginState extends State<Login> {
 
               Row(
                 children: [
-                  const Expanded(
-                    child: Divider(
-                      thickness: 1,
-                      color: Colors.black26,
-                    ),
-                  ),
+                  const Expanded(child: Divider(thickness: 1, color: Colors.black26)),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 8.0),
                     child: Text(
                       "Or continue with",
-                      style: TextStyle(color: Colors.green,fontSize: 16, fontWeight: FontWeight.w500),
+                      style: TextStyle(color: Colors.green, fontSize: 16, fontWeight: FontWeight.w500),
                     ),
                   ),
-                  const Expanded(
-                    child: Divider(
-                      thickness: 1,
-                      color: Colors.black26,
-                    ),
-                  ),
+                  const Expanded(child: Divider(thickness: 1, color: Colors.black26)),
                 ],
               ),
               const SizedBox(height: 30),
 
-              // Social Login Buttons
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -163,18 +177,12 @@ class _LoginState extends State<Login> {
                         const SizedBox(width: 10),
                         const Text(
                           "Google",
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.black87,
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: TextStyle(fontSize: 16, color: Colors.black87, fontWeight: FontWeight.bold),
                         ),
                       ],
                     ),
                   ),
-
                   const SizedBox(width: 20),
-
                   Container(
                     width: 160,
                     height: 50,
@@ -189,32 +197,28 @@ class _LoginState extends State<Login> {
                         SizedBox(width: 3),
                         Text(
                           "Apple",
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.black87,
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: TextStyle(fontSize: 16, color: Colors.black87, fontWeight: FontWeight.bold),
                         ),
                       ],
                     ),
                   ),
-                ]
+                ],
               ),
-              const SizedBox(height: 235),
+
+              const Spacer(),
+
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text("Don't have a account?",style: TextStyle(color: Colors.green,fontSize: 16, fontWeight: FontWeight.w400),),
+                  Text("Don't have a account?",
+                      style: TextStyle(color: Colors.green, fontSize: 16, fontWeight: FontWeight.w400)),
                   const SizedBox(width: 5),
                   InkWell(
-                    onTap: (){
-                      Navigator.pushNamed(context, '/register');
-                    },
-                      child: Text(
-                        'Signup',style:
-                      TextStyle(color: Colors.greenAccent,fontSize: 17, fontWeight: FontWeight.w900
-                      ),
-                      )
+                    onTap: () => Navigator.pushNamed(context, '/register'),
+                    child: const Text(
+                      'Signup',
+                      style: TextStyle(color: Colors.greenAccent, fontSize: 17, fontWeight: FontWeight.w900),
+                    ),
                   ),
                 ],
               )

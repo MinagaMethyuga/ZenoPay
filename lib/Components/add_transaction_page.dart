@@ -6,11 +6,7 @@ import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 import "package:http/http.dart" as http;
 import "package:image_picker/image_picker.dart";
-
-// If you already have your own config, keep it and remove this.
-class AppConfig {
-  static const String apiBaseUrl = "http://10.0.2.2:8000/api";
-}
+import "package:zenopay/core/config.dart";
 
 // -------------------- Models --------------------
 
@@ -681,19 +677,17 @@ class _AddTransactionPageState extends State<AddTransactionPage> with TickerProv
 
     try {
       final isIncome = txType == TxType.income;
-      final url = Uri.parse("${AppConfig.apiBaseUrl}/${isIncome ? "income" : "expense"}");
+      final url = Uri.parse("${AppConfig.apiBaseUrl}/transactions");
 
       final body = {
         "user_id": widget.userId,
         "type": isIncome ? "income" : "expense",
-        "title": titleCtrl.text.trim(),
         "amount": amount,
         "category": selectedCategory!.name,
         "icon_key": selectedCategory!.iconKey,
-        "note": noteCtrl.text.trim().isEmpty ? null : noteCtrl.text.trim(),
-        "payment_method": wallet == WalletType.cash ? "cash" : "bank",
+        "note": _buildCombinedNote(titleCtrl.text.trim(), noteCtrl.text.trim()),
+        "payment_method": wallet == WalletType.cash ? "cash" : "bank_transfer",
         "occurred_at": occurredAt.toIso8601String(),
-        "receipt_local": receipt?.path, // optional for now
         "source": "manual",
       };
 
@@ -722,7 +716,19 @@ class _AddTransactionPageState extends State<AddTransactionPage> with TickerProv
     }
   }
 
-  // -------------------- UI --------------------
+  
+  // Build a single `note` string that satisfies the backend validator (no `title` field).
+  // We merge title + note into one, safely.
+  String _buildCombinedNote(String title, String note) {
+    final t = title.trim();
+    final n = note.trim();
+    if (t.isEmpty && n.isEmpty) return "";
+    if (t.isEmpty) return n;
+    if (n.isEmpty) return t;
+    return "$t\n$n";
+  }
+
+// -------------------- UI --------------------
 
   @override
   Widget build(BuildContext context) {
