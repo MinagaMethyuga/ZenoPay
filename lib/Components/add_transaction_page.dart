@@ -1,7 +1,7 @@
 import "dart:convert";
 import "dart:io";
 import "dart:math";
-
+import "package:zenopay/services/api_client.dart";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 import "package:http/http.dart" as http;
@@ -680,10 +680,9 @@ class _AddTransactionPageState extends State<AddTransactionPage> with TickerProv
 
     try {
       final isIncome = txType == TxType.income;
-      final url = Uri.parse("${AppConfig.apiBaseUrl}/transactions");
 
       final body = {
-        "user_id": widget.userId,
+        // ✅ DO NOT SEND user_id
         "type": isIncome ? "income" : "expense",
         "amount": amount,
         "category": selectedCategory!.name,
@@ -694,18 +693,15 @@ class _AddTransactionPageState extends State<AddTransactionPage> with TickerProv
         "source": "manual",
       };
 
-      final res = await http.post(
-        url,
-        headers: const {"Accept": "application/json", "Content-Type": "application/json"},
-        body: jsonEncode(body),
-      );
+      // ✅ Use Dio client (includes session cookies saved at login)
+      final dio = await ApiClient.instance(AppConfig.apiBaseUrl);
+      final res = await dio.post("/transactions", data: body);
 
-      final decoded = jsonDecode(res.body);
-      if (res.statusCode < 200 || res.statusCode >= 300) {
+      final decoded = res.data;
+      if (decoded is Map && decoded["ok"] != true) {
         throw decoded;
       }
 
-      // persist last wallet (in-memory)
       _lastWallet = wallet;
 
       if (!mounted) return;
