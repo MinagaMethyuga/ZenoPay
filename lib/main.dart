@@ -50,7 +50,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       navigatorKey: navKey,
       title: 'ZenoPay',
       debugShowCheckedModeBanner: false,
-      initialRoute: '/home',
+      initialRoute: '/login',
       routes: {
         '/home': (context) => const Home(),
         '/login': (context) => const Login(),

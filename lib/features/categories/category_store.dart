@@ -8,20 +8,20 @@ class CategoryStore {
 
   // Defaults MUST appear even with no custom categories
   static final List<CategoryItem> defaultExpense = [
-    CategoryItem(name: "Food", iconKey: "restaurant", colorValue: const Color(0xFF16A34A).value),
-    CategoryItem(name: "Transport", iconKey: "directions_bus", colorValue: const Color(0xFF2563EB).value),
-    CategoryItem(name: "Shopping", iconKey: "shopping_cart", colorValue: const Color(0xFF7C3AED).value),
-    CategoryItem(name: "Bills", iconKey: "payments", colorValue: const Color(0xFFF59E0B).value),
-    CategoryItem(name: "Health", iconKey: "medical_services", colorValue: const Color(0xFFEF4444).value),
-    CategoryItem(name: "Education", iconKey: "school", colorValue: const Color(0xFF0EA5E9).value),
-    CategoryItem(name: "Entertainment", iconKey: "movie", colorValue: const Color(0xFFEC4899).value),
+    CategoryItem(name: "Food", iconKey: "restaurant", colorValue: const Color(0xFF16A34A).toARGB32()),
+    CategoryItem(name: "Transport", iconKey: "directions_bus", colorValue: const Color(0xFF2563EB).toARGB32()),
+    CategoryItem(name: "Shopping", iconKey: "shopping_cart", colorValue: const Color(0xFF7C3AED).toARGB32()),
+    CategoryItem(name: "Bills", iconKey: "payments", colorValue: const Color(0xFFF59E0B).toARGB32()),
+    CategoryItem(name: "Health", iconKey: "medical_services", colorValue: const Color(0xFFEF4444).toARGB32()),
+    CategoryItem(name: "Education", iconKey: "school", colorValue: const Color(0xFF0EA5E9).toARGB32()),
+    CategoryItem(name: "Entertainment", iconKey: "movie", colorValue: const Color(0xFFEC4899).toARGB32()),
   ];
 
   static final List<CategoryItem> defaultIncome = [
-    CategoryItem(name: "Allowance", iconKey: "attach_money", colorValue: const Color(0xFF16A34A).value),
-    CategoryItem(name: "Salary", iconKey: "work", colorValue: const Color(0xFF2563EB).value),
-    CategoryItem(name: "Gift", iconKey: "payments", colorValue: const Color(0xFF7C3AED).value),
-    CategoryItem(name: "Savings", iconKey: "savings", colorValue: const Color(0xFFF59E0B).value),
+    CategoryItem(name: "Allowance", iconKey: "attach_money", colorValue: const Color(0xFF16A34A).toARGB32()),
+    CategoryItem(name: "Salary", iconKey: "work", colorValue: const Color(0xFF2563EB).toARGB32()),
+    CategoryItem(name: "Gift", iconKey: "payments", colorValue: const Color(0xFF7C3AED).toARGB32()),
+    CategoryItem(name: "Savings", iconKey: "savings", colorValue: const Color(0xFFF59E0B).toARGB32()),
   ];
 
   static Future<List<CategoryItem>> load({required bool isIncome}) async {

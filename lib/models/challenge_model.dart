@@ -1,6 +1,3 @@
-import 'dart:ui';
-
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 class Challenge {
@@ -124,6 +121,6 @@ class Challenge {
 
   // Get background color for category
   Color getCategoryBgColor() {
-    return getCategoryColor().withOpacity(0.1);
+    return getCategoryColor().withValues(alpha: 0.1);
   }
 }

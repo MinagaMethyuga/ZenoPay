@@ -98,8 +98,10 @@ class _RegisterState extends State<Register> {
                       width: 48,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(16),
-                        color: const Color(0xFF00E5A8).withOpacity(0.18),
-                        border: Border.all(color: const Color(0xFF00E5A8).withOpacity(0.35)),
+                        color: const Color(0xFF00E5A8).withValues(alpha: 0.18),
+                        border: Border.all(
+                          color: const Color(0xFF00E5A8).withValues(alpha: 0.35),
+                        ),
                       ),
                       child: const Icon(Icons.auto_awesome, color: Color(0xFF00E5A8)),
                     ),

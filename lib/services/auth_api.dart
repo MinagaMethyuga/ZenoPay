@@ -1,55 +1,47 @@
-import 'package:dio/dio.dart';
-import 'package:zenopay/core/config.dart';
-import 'package:zenopay/services/api_client.dart';
+import "package:zenopay/core/config.dart";
+import "package:zenopay/services/api_client.dart";
 
 class AuthApi {
-  static const String baseUrl = AppConfig.apiBaseUrl; // ends with /api
+  // ✅ keep positional arguments (so your UI pages don't change)
+  Future<Map<String, dynamic>> register(String name, String email, String password) async {
+    final dio = await ApiClient.instance(AppConfig.apiBaseUrl);
 
-  Future<Map<String, dynamic>> register(
-      String name, String email, String password) async {
-    final Dio dio = await ApiClient.instance(baseUrl);
+    final res = await dio.post("/auth/register", data: {
+      "name": name,
+      "email": email,
+      "password": password,
+      "password_confirmation": password,
+    });
 
-    final res = await dio.post(
-      "/auth/register",
-      data: {"name": name, "email": email, "password": password},
-    );
-
-    if (res.statusCode == null || res.statusCode! >= 400) {
-      throw Exception("Register failed: ${res.statusCode} ${res.data}");
-    }
-    return Map<String, dynamic>.from(res.data as Map);
+    return _asMap(res.data);
   }
 
+  // ✅ keep positional arguments (so your Login.dart stays same)
   Future<Map<String, dynamic>> login(String email, String password) async {
-    final Dio dio = await ApiClient.instance(baseUrl);
+    final dio = await ApiClient.instance(AppConfig.apiBaseUrl);
 
-    final res = await dio.post(
-      "/auth/login",
-      data: {"email": email, "password": password},
-    );
+    final res = await dio.post("/auth/login", data: {
+      "email": email,
+      "password": password,
+    });
 
-    if (res.statusCode == null || res.statusCode! >= 400) {
-      throw Exception("Login failed: ${res.statusCode} ${res.data}");
-    }
-    return Map<String, dynamic>.from(res.data as Map);
-  }
-
-  Future<Map<String, dynamic>> me() async {
-    final Dio dio = await ApiClient.instance(baseUrl);
-
-    final res = await dio.get("/auth/me");
-
-    if (res.statusCode == null || res.statusCode! >= 400) {
-      throw Exception("Me failed: ${res.statusCode} ${res.data}");
-    }
-    return Map<String, dynamic>.from(res.data as Map);
+    return _asMap(res.data);
   }
 
   Future<void> logout() async {
-    final Dio dio = await ApiClient.instance(baseUrl);
-    try {
-      await dio.post("/auth/logout");
-    } catch (_) {}
-    await ApiClient.clearCookies();
+    final dio = await ApiClient.instance(AppConfig.apiBaseUrl);
+    await dio.post("/auth/logout");
+  }
+
+  Future<Map<String, dynamic>> me() async {
+    final dio = await ApiClient.instance(AppConfig.apiBaseUrl);
+    final res = await dio.get("/auth/me");
+    return _asMap(res.data);
+  }
+
+  Map<String, dynamic> _asMap(dynamic data) {
+    if (data is Map<String, dynamic>) return data;
+    if (data is Map) return data.cast<String, dynamic>();
+    return {"data": data};
   }
 }

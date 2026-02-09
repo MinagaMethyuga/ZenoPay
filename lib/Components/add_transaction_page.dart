@@ -481,7 +481,7 @@ class _AddTransactionPageState extends State<AddTransactionPage> with TickerProv
       id: widget.presetCategoryId ?? "preset_${DateTime.now().millisecondsSinceEpoch}",
       name: widget.presetCategoryName ?? "Custom",
       iconKey: widget.presetCategoryIconKey ?? "mi:category",
-      colorValue: widget.presetCategoryColorValue ?? IconRegistry.palette.first.value,
+      colorValue: widget.presetCategoryColorValue ?? IconRegistry.palette.first.toARGB32(),
       type: widget.presetCategoryType ??
           (txType == TxType.income ? CategoryType.income : CategoryType.expense),
       isFrequent: true,
@@ -592,14 +592,17 @@ class _AddTransactionPageState extends State<AddTransactionPage> with TickerProv
       lastDate: DateTime(2100),
       initialDate: occurredAt,
     );
+    if (!mounted) return;
     if (date == null) return;
 
     final time = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.fromDateTime(occurredAt),
     );
+    if (!mounted) return;
     if (time == null) return;
 
+    if (!mounted) return;
     setState(() => occurredAt = DateTime(date.year, date.month, date.day, time.hour, time.minute));
     HapticFeedback.selectionClick();
   }
@@ -766,7 +769,7 @@ class _AddTransactionPageState extends State<AddTransactionPage> with TickerProv
       height: 220,
       child: AnimatedBuilder(
         animation: _bgCtrl,
-        builder: (_, __) {
+        builder: (context, _) {
           final t = _bgCtrl.value;
           final begin = Alignment(-1 + (t * 0.6), -1);
           final end = Alignment(1, 1 - (t * 0.6));
@@ -779,7 +782,7 @@ class _AddTransactionPageState extends State<AddTransactionPage> with TickerProv
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [Colors.black.withOpacity(0.08), Colors.transparent],
+                  colors: [Colors.black.withValues(alpha: 0.08), Colors.transparent],
                 ),
               ),
             ),
@@ -816,9 +819,9 @@ class _AddTransactionPageState extends State<AddTransactionPage> with TickerProv
         width: 44,
         height: 44,
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.18),
+          color: Colors.white.withValues(alpha: 0.18),
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: Colors.white.withOpacity(0.22)),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.22)),
         ),
         child: Icon(icon, color: Colors.white),
       ),
@@ -841,7 +844,7 @@ class _AddTransactionPageState extends State<AddTransactionPage> with TickerProv
                   height: 6,
                   margin: EdgeInsets.only(right: i == 2 ? 0 : 8),
                   decoration: BoxDecoration(
-                    color: active ? Colors.white : Colors.white.withOpacity(0.30),
+                    color: active ? Colors.white : Colors.white.withValues(alpha: 0.30),
                     borderRadius: BorderRadius.circular(999),
                   ),
                 ),
@@ -873,11 +876,11 @@ class _AddTransactionPageState extends State<AddTransactionPage> with TickerProv
     return Container(
       padding: const EdgeInsets.all(6),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.90),
+        color: Colors.white.withValues(alpha: 0.90),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: const Color(0xFFE2E8F0)),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 18, offset: const Offset(0, 8)),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 18, offset: const Offset(0, 8)),
         ],
       ),
       child: Row(
@@ -1041,7 +1044,7 @@ class _AddTransactionPageState extends State<AddTransactionPage> with TickerProv
   }
 
   Widget _amountDisplay() {
-    final display = amountText.contains(".") ? amountText : "${amountText}.00";
+    final display = amountText.contains(".") ? amountText : "$amountText.00";
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
       decoration: BoxDecoration(
@@ -1076,7 +1079,7 @@ class _AddTransactionPageState extends State<AddTransactionPage> with TickerProv
     return Container(
       padding: const EdgeInsets.all(6),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.94),
+        color: Colors.white.withValues(alpha: 0.94),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
@@ -1199,10 +1202,11 @@ class _AddTransactionPageState extends State<AddTransactionPage> with TickerProv
                       Container(
                         width: 42,
                         height: 42,
-                        decoration: BoxDecoration(
-                          color: (selectedCategory?.color ?? const Color(0xFF64748B)).withOpacity(0.18),
-                          shape: BoxShape.circle,
-                        ),
+                    decoration: BoxDecoration(
+                      color: (selectedCategory?.color ?? const Color(0xFF64748B))
+                          .withValues(alpha: 0.18),
+                      shape: BoxShape.circle,
+                    ),
                         child: Icon(
                           IconRegistry.byKey(selectedCategory?.iconKey ?? "mi:category"),
                           color: selectedCategory?.color ?? const Color(0xFF64748B),
@@ -1392,11 +1396,11 @@ class _AddTransactionPageState extends State<AddTransactionPage> with TickerProv
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.94),
+        color: Colors.white.withValues(alpha: 0.94),
         borderRadius: BorderRadius.circular(22),
         border: Border.all(color: const Color(0xFFE2E8F0)),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 18, offset: const Offset(0, 8)),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 18, offset: const Offset(0, 8)),
         ],
       ),
       child: child,
@@ -1408,7 +1412,7 @@ class _AddTransactionPageState extends State<AddTransactionPage> with TickerProv
       width: 42,
       height: 42,
       decoration: BoxDecoration(
-        gradient: LinearGradient(colors: [_accent, _accent.withOpacity(0.65)]),
+        gradient: LinearGradient(colors: [_accent, _accent.withValues(alpha: 0.65)]),
         borderRadius: BorderRadius.circular(14),
       ),
       child: Icon(icon, color: Colors.white),
@@ -1427,7 +1431,7 @@ class _AddTransactionPageState extends State<AddTransactionPage> with TickerProv
         onPressed: enabled ? onTap : null,
         style: ElevatedButton.styleFrom(
           backgroundColor: _accent,
-          disabledBackgroundColor: _accent.withOpacity(0.35),
+          disabledBackgroundColor: _accent.withValues(alpha: 0.35),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
           elevation: 0,
         ),
@@ -1451,7 +1455,7 @@ class _AddTransactionPageState extends State<AddTransactionPage> with TickerProv
         style: OutlinedButton.styleFrom(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
           side: const BorderSide(color: Color(0xFFE2E8F0), width: 2),
-          backgroundColor: Colors.white.withOpacity(0.92),
+          backgroundColor: Colors.white.withValues(alpha: 0.92),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -1525,7 +1529,13 @@ class _CategoryPickerSheetState extends State<_CategoryPickerSheet> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.12), blurRadius: 26, offset: const Offset(0, -8))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.12),
+            blurRadius: 26,
+            offset: const Offset(0, -8),
+          )
+        ],
       ),
       child: Column(
         children: [
@@ -1637,7 +1647,7 @@ class _CategoryPickerSheetState extends State<_CategoryPickerSheet> {
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               itemCount: widget.existing.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 10),
+              separatorBuilder: (context, _) => const SizedBox(width: 10),
               itemBuilder: (_, i) {
                 final c = widget.existing[i];
                 final sel = widget.current?.id == c.id;
@@ -1649,7 +1659,7 @@ class _CategoryPickerSheetState extends State<_CategoryPickerSheet> {
                     width: 140,
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: sel ? c.color.withOpacity(0.16) : const Color(0xFFF8FAFC),
+                      color: sel ? c.color.withValues(alpha: 0.16) : const Color(0xFFF8FAFC),
                       borderRadius: BorderRadius.circular(18),
                       border: Border.all(color: sel ? c.color : const Color(0xFFE2E8F0), width: 2),
                     ),
@@ -1659,7 +1669,9 @@ class _CategoryPickerSheetState extends State<_CategoryPickerSheet> {
                           width: 42,
                           height: 42,
                           decoration: BoxDecoration(
-                            gradient: LinearGradient(colors: [c.color.withOpacity(0.95), c.color.withOpacity(0.55)]),
+                            gradient: LinearGradient(
+                              colors: [c.color.withValues(alpha: 0.95), c.color.withValues(alpha: 0.55)],
+                            ),
                             shape: BoxShape.circle,
                           ),
                           child: Icon(IconRegistry.byKey(c.iconKey), color: Colors.white),
@@ -1800,7 +1812,10 @@ class _NewCategoryDialogState extends State<_NewCategoryDialog> {
                   Container(
                     width: 44,
                     height: 44,
-                    decoration: BoxDecoration(color: color.withOpacity(0.18), shape: BoxShape.circle),
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.18),
+                      shape: BoxShape.circle,
+                    ),
                     child: Icon(IconRegistry.byKey(iconKey), color: color),
                   ),
                   const SizedBox(width: 10),
@@ -1848,7 +1863,7 @@ class _NewCategoryDialogState extends State<_NewCategoryDialog> {
               spacing: 10,
               runSpacing: 10,
               children: IconRegistry.palette.map((c) {
-                final sel = c.value == color.value;
+                final sel = c.toARGB32() == color.toARGB32();
                 return InkWell(
                   onTap: () => setState(() => color = c),
                   borderRadius: BorderRadius.circular(999),
@@ -1891,7 +1906,7 @@ class _NewCategoryDialogState extends State<_NewCategoryDialog> {
                         width: 52,
                         height: 52,
                         decoration: BoxDecoration(
-                          color: sel ? color.withOpacity(0.16) : const Color(0xFFF8FAFC),
+                          color: sel ? color.withValues(alpha: 0.16) : const Color(0xFFF8FAFC),
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(color: sel ? color : const Color(0xFFE2E8F0), width: 2),
                         ),
@@ -1925,7 +1940,7 @@ class _NewCategoryDialogState extends State<_NewCategoryDialog> {
               id: id,
               name: name,
               iconKey: iconKey,
-              colorValue: color.value,
+              colorValue: color.toARGB32(),
               type: type,
               isFrequent: frequent,
             );

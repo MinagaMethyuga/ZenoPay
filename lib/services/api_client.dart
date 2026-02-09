@@ -1,45 +1,37 @@
-import 'package:dio/dio.dart';
-import 'package:dio_cookie_manager/dio_cookie_manager.dart';
-import 'package:cookie_jar/cookie_jar.dart';
+import "dart:io";
+import "package:dio/dio.dart";
+import "package:cookie_jar/cookie_jar.dart";
+import "package:dio_cookie_manager/dio_cookie_manager.dart";
+import "package:path_provider/path_provider.dart";
 
 class ApiClient {
   static Dio? _dio;
-  static CookieJar? _jar;
+  static PersistCookieJar? _cookieJar;
+  static String? _baseUrl;
 
+  // ✅ Backward-compatible: ApiClient.instance(AppConfig.apiBaseUrl)
   static Future<Dio> instance(String baseUrl) async {
-    if (_dio != null) return _dio!;
+    if (_dio != null && _baseUrl == baseUrl) return _dio!;
+    _baseUrl = baseUrl;
 
-    _jar = CookieJar(); // in-memory cookie jar
+    if (_cookieJar == null) {
+      final dir = await getApplicationDocumentsDirectory();
+      final cookiePath = "${dir.path}${Platform.pathSeparator}cookies";
+      _cookieJar = PersistCookieJar(storage: FileStorage(cookiePath));
+    }
 
-    final dio = Dio(
-      BaseOptions(
-        baseUrl: baseUrl,
-        headers: {"accept": "application/json"},
-        contentType: Headers.jsonContentType,
-        responseType: ResponseType.json,
-        connectTimeout: const Duration(seconds: 20),
-        sendTimeout: const Duration(seconds: 20),
-        receiveTimeout: const Duration(seconds: 20),
-        validateStatus: (code) => code != null && code >= 200 && code < 500,
-      ),
-    );
-
-    dio.interceptors.add(CookieManager(_jar!));
-
-    dio.interceptors.add(LogInterceptor(
-      request: true,
-      requestHeader: true,
-      requestBody: true,
-      responseHeader: false,
-      responseBody: true,
-      error: true,
+    final d = Dio(BaseOptions(
+      baseUrl: baseUrl, // ex: https://xxxx.ngrok.../api
+      connectTimeout: const Duration(seconds: 20),
+      receiveTimeout: const Duration(seconds: 20),
+      headers: {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+      },
     ));
 
-    _dio = dio;
-    return dio;
-  }
-
-  static Future<void> clearCookies() async {
-    await _jar?.deleteAll();
+    d.interceptors.add(CookieManager(_cookieJar!));
+    _dio = d;
+    return _dio!;
   }
 }

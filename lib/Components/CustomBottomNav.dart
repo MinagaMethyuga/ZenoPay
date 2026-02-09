@@ -81,10 +81,10 @@ class _CustomBottomNavState extends State<CustomBottomNav>
         decoration: BoxDecoration(
           color: const Color(0xFF1E293B),
           borderRadius: BorderRadius.circular(32),
-          border: Border.all(color: const Color(0xFF334155).withOpacity(0.5)),
+          border: Border.all(color: const Color(0xFF334155).withValues(alpha: 0.5)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.5),
+              color: Colors.black.withValues(alpha: 0.5),
               blurRadius: 40,
               offset: const Offset(0, 10),
             ),
@@ -120,7 +120,7 @@ class _CustomBottomNavState extends State<CustomBottomNav>
                       border: Border.all(color: const Color(0xFFF8FAFC), width: 5),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF10B981).withOpacity(0.4),
+                          color: const Color(0xFF10B981).withValues(alpha: 0.4),
                           blurRadius: 20,
                         ),
                       ],
@@ -175,12 +175,12 @@ class _CustomBottomNavState extends State<CustomBottomNav>
                   shape: BoxShape.circle,
                   boxShadow: isActive
                       ? [
-                    BoxShadow(
-                      color: const Color(0xFF3B82F6).withOpacity(0.6),
-                      blurRadius: 12,
-                      spreadRadius: 2,
-                    ),
-                  ]
+                          BoxShadow(
+                            color: const Color(0xFF3B82F6).withValues(alpha: 0.6),
+                            blurRadius: 12,
+                            spreadRadius: 2,
+                          ),
+                        ]
                       : null,
                 ),
                 child: Icon(

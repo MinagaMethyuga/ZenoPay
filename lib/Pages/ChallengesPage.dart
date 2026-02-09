@@ -28,20 +28,22 @@ class _ChallengesPageState extends State<ChallengesPage> {
   }
 
   Future<void> _loadChallenges() async {
+    if (!mounted) return;
     setState(() => isLoading = true);
 
     try {
       final challenges = await _challengeService.getActiveChallenges();
-
+      if (!mounted) return;
       setState(() {
-        allChallenges = challenges;
-        dailyChallenges = challenges.where((c) => c.frequency == 'Daily').toList();
-        activeChallenges = challenges.where((c) => c.frequency != 'Daily').toList();
+        allChallenges = challenges.cast<Challenge>();
+        dailyChallenges = challenges.where((c) => c.frequency == 'Daily').cast<Challenge>().toList();
+        activeChallenges = challenges.where((c) => c.frequency != 'Daily').cast<Challenge>().toList();
         totalXP = challenges.fold(0, (sum, c) => sum + c.xpReward);
         isLoading = false;
       });
     } catch (e) {
-      print('Error loading challenges: $e');
+      debugPrint('Error loading challenges: $e');
+      if (!mounted) return;
       setState(() => isLoading = false);
     }
   }
@@ -359,7 +361,7 @@ class _ChallengesPageState extends State<ChallengesPage> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 15,
             offset: const Offset(0, 4),
           ),
@@ -379,8 +381,8 @@ class _ChallengesPageState extends State<ChallengesPage> {
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
-                        challenge.getCategoryColor().withOpacity(0.3),
-                        challenge.getCategoryColor().withOpacity(0.1),
+                        challenge.getCategoryColor().withValues(alpha: 0.3),
+                        challenge.getCategoryColor().withValues(alpha: 0.1),
                       ],
                     ),
                   ),
@@ -397,7 +399,7 @@ class _ChallengesPageState extends State<ChallengesPage> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.6),
+                    color: Colors.black.withValues(alpha: 0.6),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
@@ -491,7 +493,7 @@ class _ChallengesPageState extends State<ChallengesPage> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -607,7 +609,7 @@ class _ChallengesPageState extends State<ChallengesPage> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -710,7 +712,7 @@ class _ChallengesPageState extends State<ChallengesPage> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -771,7 +773,7 @@ class _ChallengesPageState extends State<ChallengesPage> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -831,12 +833,12 @@ class _ChallengesPageState extends State<ChallengesPage> {
             borderRadius: BorderRadius.circular(10),
             boxShadow: isSelected
                 ? [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ]
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
                 : null,
           ),
           child: Text(

@@ -1,4 +1,11 @@
 import 'package:flutter/material.dart';
+import "package:dio/dio.dart";
+import "package:zenopay/core/config.dart";
+import "package:zenopay/services/api_client.dart";
+
+// ⚠️ Change this to your real backend base URL
+// Example (ngrok): const String baseUrl = "https://xxxx.ngrok-free.app";
+const String baseUrl = "https://subintentional-corinne-componental.ngrok-free.dev";
 
 class OnboardingJourney extends StatefulWidget {
   const OnboardingJourney({super.key});
@@ -17,8 +24,12 @@ class _OnboardingJourneyState extends State<OnboardingJourney> {
 
   bool _saving = false;
 
-  void _next() => _pc.nextPage(duration: const Duration(milliseconds: 420), curve: Curves.easeOutCubic);
-  void _back() => _pc.previousPage(duration: const Duration(milliseconds: 420), curve: Curves.easeOutCubic);
+  void _next() => _pc.nextPage(
+      duration: const Duration(milliseconds: 420),
+      curve: Curves.easeOutCubic);
+  void _back() => _pc.previousPage(
+      duration: const Duration(milliseconds: 420),
+      curve: Curves.easeOutCubic);
 
   void _toast(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -38,9 +49,35 @@ class _OnboardingJourneyState extends State<OnboardingJourney> {
     setState(() => _saving = true);
 
     try {
-      // ✅ NEXT STEP: call backend /api/onboarding to store wallets
-      if (!mounted) return;
-      Navigator.pushNamedAndRemoveUntil(context, "/home", (r) => false);
+      final dio = await ApiClient.instance(AppConfig.apiBaseUrl);
+
+      // ✅ you must store the response
+      final res = await dio.post("/onboarding", data: {
+        "cash_balance": cash,
+        "bank_name": bankName,
+        "bank_balance": bankBal,
+      });
+
+      if (res.statusCode == 200) {
+        if (!mounted) return;
+        Navigator.pushNamedAndRemoveUntil(context, "/home", (r) => false);
+        return;
+      }
+
+      _toast("Failed (${res.statusCode})");
+    } on DioException catch (e) {
+      String msg = "Onboarding failed";
+
+      final data = e.response?.data;
+      if (data is Map && data["message"] != null) {
+        msg = data["message"].toString();
+      } else if (e.response?.statusCode != null) {
+        msg = "Failed (${e.response?.statusCode})";
+      }
+
+      _toast(msg); // ✅ no msg!
+    } catch (e) {
+      _toast("Onboarding failed: $e");
     } finally {
       if (mounted) setState(() => _saving = false);
     }

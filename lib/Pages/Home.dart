@@ -7,6 +7,7 @@ import "package:zenopay/Components/add_transaction_page.dart" hide IconRegistry;
 
 import "package:zenopay/core/config.dart";
 import "package:zenopay/core/icon_registry.dart";
+import "package:zenopay/services/auth_api.dart";
 
 class Home extends StatefulWidget {
   const Home({super.key});
@@ -16,12 +17,17 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> with TickerProviderStateMixin {
-  // TEMP until auth comes: use your logged user id later
-  final int userId = 1;
+  int? _userId;
 
   bool loading = true;
   String? error;
 
+  // Fetched from /auth/me
+  Map<String, dynamic>? _user;
+  Map<String, dynamic>? _profile;
+  List<Map<String, dynamic>> _wallets = [];
+
+  // Last N transactions
   List<Map<String, dynamic>> transactions = [];
 
   // banner animation (optional)
@@ -50,14 +56,31 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
   }
 
   Future<void> _load() async {
+    if (!mounted) return;
     setState(() {
       loading = true;
       error = null;
     });
 
     try {
+      // 1) Fetch current user + profile + wallets using session cookie
+      final auth = AuthApi();
+      final me = await auth.me();
+      final user = (me["user"] ?? {}) as Map<String, dynamic>;
+      if (user.isEmpty) {
+        throw Exception("Not authenticated. Please log in again.");
+      }
+      final profile = (user["profile"] as Map?)?.cast<String, dynamic>() ?? <String, dynamic>{};
+      final walletsRaw = (user["wallets"] as List?) ?? <dynamic>[];
+      final wallets = walletsRaw
+          .map((w) => (w as Map).cast<String, dynamic>())
+          .toList(growable: false);
+
+      final id = user["id"] as int;
+
+      // 2) Fetch transactions for this user id (current API expects user_id param)
       final uri = Uri.parse("${AppConfig.apiBaseUrl}/transactions")
-          .replace(queryParameters: {"user_id": userId.toString()});
+          .replace(queryParameters: {"user_id": id.toString()});
 
       final res = await http.get(uri, headers: const {"Accept": "application/json"});
       final decoded = jsonDecode(res.body);
@@ -69,10 +92,16 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
       final list = (decoded["transactions"] as List).cast<dynamic>();
       final mapped = list.map((e) => (e as Map).cast<String, dynamic>()).toList();
 
+      if (!mounted) return;
       setState(() {
+        _userId = id;
+        _user = user;
+        _profile = profile;
+        _wallets = wallets;
         transactions = mapped;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         error = e.toString();
       });
@@ -112,6 +141,31 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
   double get balance => totalIncome - totalExpense;
 
   String _money(double v) => v.toStringAsFixed(2);
+
+  // ======= Derived user/profile helpers =======
+  String get _displayName {
+    final name = _user?["name"] as String?;
+    if (name == null || name.trim().isEmpty) return "Student";
+    return name;
+  }
+
+  int get _level => (_profile?["level"] as int?) ?? 1;
+
+  int get _currentStreak => (_profile?["current_streak"] as int?) ?? 0;
+
+  double _walletBalanceByType(String type) {
+    for (final w in _wallets) {
+      if (w["type"] == type) {
+        final raw = w["balance"];
+        if (raw is num) return raw.toDouble();
+        return double.tryParse(raw.toString()) ?? 0;
+      }
+    }
+    return 0;
+  }
+
+  double get _cashBalance => _walletBalanceByType("cash");
+  double get _bankBalance => _walletBalanceByType("bank");
 
   // ======= UI =======
   @override
@@ -236,9 +290,9 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  "Hi, Minaga 👋",
-                  style: TextStyle(
+                Text(
+                  "Hi, $_displayName 👋",
+                  style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w800,
                     color: Color(0xFF334155),
@@ -268,9 +322,9 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    const Text(
-                      "LVL 5",
-                      style: TextStyle(
+                    Text(
+                      "LVL $_level",
+                      style: const TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w800,
                         color: Color(0xFF6366F1),
@@ -292,13 +346,13 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
               border: Border.all(color: const Color(0xFFF1F5F9)),
               boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 6)],
             ),
-            child: const Row(
+            child: Row(
               children: [
-                Icon(Icons.local_fire_department, color: Color(0xFFF97316), size: 18),
-                SizedBox(width: 6),
+                const Icon(Icons.local_fire_department, color: Color(0xFFF97316), size: 18),
+                const SizedBox(width: 6),
                 Text(
-                  "12",
-                  style: TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF334155)),
+                  _currentStreak.toString(),
+                  style: const TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF334155)),
                 ),
               ],
             ),
@@ -370,6 +424,8 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
     final income = totalIncome;
     final expense = totalExpense;
     final bal = balance;
+    final cash = _cashBalance;
+    final bank = _bankBalance;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -450,6 +506,35 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
             ),
           ],
         ),
+
+        const SizedBox(height: 12),
+
+        if (cash != 0 || bank != 0)
+          Row(
+            children: [
+              if (cash != 0)
+                Expanded(
+                  child: _statCard(
+                    title: "Cash wallet",
+                    value: _money(cash),
+                    icon: Icons.payments_outlined,
+                    color: const Color(0xFF0EA5E9),
+                    bg: const Color(0xFFE0F2FE),
+                  ),
+                ),
+              if (cash != 0 && bank != 0) const SizedBox(width: 10),
+              if (bank != 0)
+                Expanded(
+                  child: _statCard(
+                    title: "Bank wallet",
+                    value: _money(bank),
+                    icon: Icons.credit_card,
+                    color: const Color(0xFF6366F1),
+                    bg: const Color(0xFFEEF2FF),
+                  ),
+                ),
+            ],
+          ),
       ],
     );
   }
@@ -531,7 +616,7 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
                     MaterialPageRoute(
                       builder: (_) => AddTransactionPage(
                         type: "expense",
-                        userId: userId,
+                        userId: _userId ?? 1,
                         presetCategoryName: name,
                         presetCategoryIconKey: iconKey,
                         presetCategoryColorValue: c.toARGB32(),

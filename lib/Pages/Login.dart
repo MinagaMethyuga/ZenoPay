@@ -164,7 +164,7 @@ class _LoginState extends State<Login> {
                     height: 50,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(25.0),
-                      color: Colors.green.withOpacity(0.1),
+                      color: Colors.green.withValues(alpha: 0.1),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -188,7 +188,7 @@ class _LoginState extends State<Login> {
                     height: 50,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(25.0),
-                      color: Colors.green.withOpacity(0.1),
+                      color: Colors.green.withValues(alpha: 0.1),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
