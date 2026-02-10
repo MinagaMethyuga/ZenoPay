@@ -5,13 +5,19 @@ import 'package:zenopay/Pages/ChallengesPage.dart';
 import 'package:zenopay/Pages/Leaderboards.dart';
 import 'package:zenopay/Pages/ProfilePage.dart';
 import 'package:zenopay/services/auth_api.dart';
+import 'package:zenopay/services/budget_notification_service.dart';
+import 'package:zenopay/state/app_theme.dart';
+import 'package:zenopay/theme/zenopay_colors.dart';
 
 import 'Pages/Login.dart';
 import 'Pages/Home.dart';
 import 'Pages/register.dart';
 import 'Pages/OnboardingJourney.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await BudgetNotificationService.initialize();
+  await AppTheme.init();
   runApp(const MyApp());
 }
 
@@ -45,13 +51,71 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     }
   }
 
+  static const Color _accent = Color(0xFF4F6DFF);
+  static const Color _surfaceLight = Color(0xFFF8FAFC);
+  static const Color _surfaceDark = Color(0xFF0F172A);
+  static const Color _cardLight = Colors.white;
+  static const Color _cardDark = Color(0xFF1E293B);
+  static const Color _textPrimaryLight = Color(0xFF1E2A3B);
+  static const Color _textPrimaryDark = Color(0xFFF8FAFC);
+  static const Color _textSecondaryLight = Color(0xFF64748B);
+  static const Color _textSecondaryDark = Color(0xFF94A3B8);
+
+  ThemeData _lightTheme() {
+    return ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.light,
+      colorScheme: ColorScheme.light(
+        primary: _accent,
+        surface: _surfaceLight,
+        onSurface: _textPrimaryLight,
+        onSurfaceVariant: _textSecondaryLight,
+      ),
+      scaffoldBackgroundColor: _surfaceLight,
+      appBarTheme: const AppBarTheme(
+        backgroundColor: _surfaceLight,
+        foregroundColor: _textPrimaryLight,
+        elevation: 0,
+      ),
+      cardColor: _cardLight,
+      extensions: const [ZenoPayColors.light],
+    );
+  }
+
+  ThemeData _darkTheme() {
+    return ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.dark,
+      colorScheme: ColorScheme.dark(
+        primary: _accent,
+        surface: _surfaceDark,
+        onSurface: _textPrimaryDark,
+        onSurfaceVariant: _textSecondaryDark,
+      ),
+      scaffoldBackgroundColor: _surfaceDark,
+      appBarTheme: const AppBarTheme(
+        backgroundColor: _surfaceDark,
+        foregroundColor: _textPrimaryDark,
+        elevation: 0,
+      ),
+      cardColor: _cardDark,
+      extensions: const [ZenoPayColors.dark],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      navigatorKey: navKey,
-      title: 'ZenoPay',
-      debugShowCheckedModeBanner: false,
-      initialRoute: '/login',
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: AppTheme.notifier,
+      builder: (context, themeMode, _) {
+        return MaterialApp(
+          navigatorKey: navKey,
+          title: 'ZenoPay',
+          debugShowCheckedModeBanner: false,
+          theme: _lightTheme(),
+          darkTheme: _darkTheme(),
+          themeMode: themeMode,
+          initialRoute: '/login',
       onGenerateRoute: (settings) {
         Widget page;
         switch (settings.name) {
@@ -107,6 +171,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
             );
           },
           transitionDuration: const Duration(milliseconds: 280),
+        );
+      },
         );
       },
     );

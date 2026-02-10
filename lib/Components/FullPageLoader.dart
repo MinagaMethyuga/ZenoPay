@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:zenopay/theme/zenopay_colors.dart';
 
 /// Full-screen loader shown while a page is loading.
 /// Replaces the partial layout (bottom nav only) with a cohesive loading state.
@@ -33,10 +34,12 @@ class _FullPageLoaderState extends State<FullPageLoader>
 
   @override
   Widget build(BuildContext context) {
-    final accent = widget.accentColor ?? const Color(0xFF4F6DFF);
+    final c = Theme.of(context).extension<ZenoPayColors>();
+    final surface = c?.surface ?? const Color(0xFFF8FAFC);
+    final accent = widget.accentColor ?? (c?.accent ?? const Color(0xFF4F6DFF));
 
     return Container(
-      color: const Color(0xFFF8FAFC),
+      color: surface,
       child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,

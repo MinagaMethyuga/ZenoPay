@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:zenopay/Components/CustomBottomNav.dart';
+import 'package:zenopay/theme/zenopay_colors.dart';
 
 class Leaderboards extends StatefulWidget {
   const Leaderboards({super.key});
@@ -13,8 +14,9 @@ class _LeaderboardsState extends State<Leaderboards> {
 
   @override
   Widget build(BuildContext context) {
+    final c = ZenoPayColors.of(context);
     return Scaffold(
-      backgroundColor: const Color(0xFFF0F4F8),
+      backgroundColor: c.surface,
       body: Stack(
         children: [
           // Main content
@@ -27,29 +29,29 @@ class _LeaderboardsState extends State<Leaderboards> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
+                      Text(
                         'Leaderboard',
                         style: TextStyle(
                           fontSize: 28,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF6366F1),
+                          color: c.accent,
                         ),
                       ),
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: c.card,
                           borderRadius: BorderRadius.circular(12),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.05),
+                              color: c.shadow.withValues(alpha: 0.08),
                               blurRadius: 10,
                             ),
                           ],
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.tune,
-                          color: Color(0xFF6366F1),
+                          color: c.accent,
                           size: 24,
                         ),
                       ),
@@ -72,11 +74,11 @@ class _LeaderboardsState extends State<Leaderboards> {
                           child: Container(
                             padding: const EdgeInsets.all(6),
                             decoration: BoxDecoration(
-                              color: Colors.white,
+                              color: c.card,
                               borderRadius: BorderRadius.circular(20),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.05),
+                                  color: c.shadow.withValues(alpha: 0.08),
                                   blurRadius: 15,
                                 ),
                               ],

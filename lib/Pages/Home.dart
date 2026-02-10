@@ -1,6 +1,7 @@
 import "package:flutter/material.dart";
 
 import "package:zenopay/Components/CustomBottomNav.dart";
+import "package:zenopay/theme/zenopay_colors.dart";
 import "package:zenopay/Components/FullPageLoader.dart";
 import "package:zenopay/Components/add_transaction_page.dart" hide IconRegistry;
 
@@ -10,6 +11,8 @@ import "package:zenopay/models/user_model.dart";
 import "package:zenopay/services/api_client.dart";
 import "package:zenopay/services/auth_api.dart";
 import "package:zenopay/state/current_user.dart";
+import "package:zenopay/services/budget_service.dart";
+import "package:zenopay/services/budget_notification_service.dart";
 
 class Home extends StatefulWidget {
   const Home({super.key});
@@ -139,6 +142,14 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
         transactions = mapped;
         _meUser = parsedUser;
       });
+
+      // Check budgets and send notifications if needed
+      try {
+        final budget = await BudgetService.load();
+        await BudgetNotificationService.checkBudgetsAndNotify(budget, mapped);
+      } catch (_) {
+        // Silently fail - notification check shouldn't block app loading
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -229,20 +240,33 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
   // ======= UI =======
   @override
   Widget build(BuildContext context) {
+    final c = ZenoPayColors.of(context);
     final income = totalIncome;
     final expense = totalExpense;
     final bal = balance;
 
     if (loading) {
-      return const Scaffold(
-        backgroundColor: Color(0xFFF8FAFC),
-        body: FullPageLoader(accentColor: Color(0xFF4F6DFF)),
+      return Scaffold(
+        backgroundColor: c.surface,
+        body: const FullPageLoader(accentColor: Color(0xFF4F6DFF)),
       );
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
-      body: Stack(
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              c.surfaceGradientStart,
+              c.surface,
+              c.surfaceGradientEnd,
+            ],
+            stops: const [0.0, 0.45, 1.0],
+          ),
+        ),
+        child: Stack(
         children: [
           // ✅ FIX: Stack needs a bounded child -> Positioned.fill
           Positioned.fill(
@@ -264,11 +288,24 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
                               height: 44,
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                border: Border.all(
-                                    color: const Color(0xFF7C4DFF), width: 2),
+                                gradient: LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: [
+                                    const Color(0xFF7C4DFF),
+                                    const Color(0xFFB388FF),
+                                  ],
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(0xFF7C4DFF).withValues(alpha: 0.35),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
                               ),
                               child: const Icon(Icons.person,
-                                  color: Color(0xFF7C4DFF)),
+                                  color: Colors.white, size: 24), // gradient avatar
                             ),
                             const SizedBox(width: 12),
                             Expanded(
@@ -277,10 +314,10 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
                                 children: [
                                   Text(
                                     "Hi, $_displayName 👋",
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 18,
                                       fontWeight: FontWeight.w700,
-                                      color: Color(0xFF1E2A3B),
+                                      color: c.textPrimary,
                                     ),
                                   ),
                                   const SizedBox(height: 6),
@@ -293,19 +330,18 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
                                           child: LinearProgressIndicator(
                                             value: 0.5,
                                             minHeight: 8,
-                                            backgroundColor:
-                                            const Color(0xFFE6E9F0),
-                                            color: const Color(0xFF4F6DFF),
+                                            backgroundColor: c.progressBg,
+                                            color: c.accent,
                                           ),
                                         ),
                                       ),
                                       const SizedBox(width: 10),
                                       Text(
                                         "LVL $_levelLabel",
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontSize: 12,
                                           fontWeight: FontWeight.w700,
-                                          color: Color(0xFF4F6DFF),
+                                          color: c.accent,
                                         ),
                                       ),
                                     ],
@@ -320,26 +356,29 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 12, vertical: 10),
                                   decoration: BoxDecoration(
-                                    color: Colors.white,
+                                    color: c.accentMuted,
                                     borderRadius: BorderRadius.circular(16),
-                                    boxShadow: const [
+                                    border: Border.all(
+                                        color: c.accent.withValues(alpha: 0.2)),
+                                    boxShadow: [
                                       BoxShadow(
-                                        color: Color(0x11000000),
+                                        color: c.shadow.withValues(alpha: 0.08),
                                         blurRadius: 16,
-                                        offset: Offset(0, 8),
+                                        offset: const Offset(0, 8),
                                       ),
                                     ],
                                   ),
                                   child: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      const Icon(Icons.star_rounded,
-                                          color: Color(0xFF4F6DFF), size: 18),
+                                      Icon(Icons.star_rounded,
+                                          color: c.accent, size: 18),
                                       const SizedBox(width: 6),
                                       Text(
                                         "$_displayXp XP",
-                                        style: const TextStyle(
-                                            fontWeight: FontWeight.w800),
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.w800,
+                                            color: c.textPrimary),
                                       ),
                                     ],
                                   ),
@@ -354,13 +393,15 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
                                       padding: const EdgeInsets.symmetric(
                                           horizontal: 12, vertical: 10),
                                       decoration: BoxDecoration(
-                                        color: Colors.white,
+                                        color: const Color(0xFFFFF7ED),
                                         borderRadius: BorderRadius.circular(16),
-                                        boxShadow: const [
+                                        border: Border.all(
+                                            color: const Color(0xFFF97316).withValues(alpha: 0.3)),
+                                        boxShadow: [
                                           BoxShadow(
-                                            color: Color(0x11000000),
+                                            color: c.shadow.withValues(alpha: 0.08),
                                             blurRadius: 16,
-                                            offset: Offset(0, 8),
+                                            offset: const Offset(0, 8),
                                           ),
                                         ],
                                       ),
@@ -368,12 +409,13 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
                                           const Icon(Icons.local_fire_department,
-                                              color: Color(0xFFFF7A00), size: 18),
+                                              color: Color(0xFFF97316), size: 18),
                                           const SizedBox(width: 6),
                                           Text(
                                             streak.toString(),
-                                            style: const TextStyle(
-                                                fontWeight: FontWeight.w800),
+                                            style: TextStyle(
+                                                fontWeight: FontWeight.w800,
+                                                color: c.textPrimary),
                                           ),
                                         ],
                                       ),
@@ -396,14 +438,28 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
                             child: Container(
                               padding: const EdgeInsets.all(14),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFD9FFF0),
+                                gradient: LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: [
+                                    const Color(0xFFD1FAE5),
+                                    const Color(0xFFA7F3D0),
+                                  ],
+                                ),
                                 borderRadius: BorderRadius.circular(16),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: c.success.withValues(alpha: 0.12),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
                               ),
                               child: Row(
                                 children: [
-                                  const CircleAvatar(
-                                    backgroundColor: Colors.white,
-                                    child: Icon(Icons.auto_awesome,
+                                  CircleAvatar(
+                                    backgroundColor: c.card,
+                                    child: const Icon(Icons.auto_awesome,
                                         color: Color(0xFF00C27A)),
                                   ),
                                   const SizedBox(width: 12),
@@ -442,13 +498,13 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
                         padding: const EdgeInsets.fromLTRB(20, 18, 20, 10),
                         child: Row(
                           children: [
-                            const Expanded(
+                            Expanded(
                               child: Text(
                                 "Overview",
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.w800,
-                                  color: Color(0xFF1E2A3B),
+                                  color: c.textPrimary,
                                 ),
                               ),
                             ),
@@ -466,10 +522,9 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
                           child: Container(
                             padding: const EdgeInsets.all(14),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFFFE8E8),
+                              color: c.error.withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(16),
-                              border:
-                              Border.all(color: const Color(0xFFFFB3B3)),
+                              border: Border.all(color: c.error.withValues(alpha: 0.4)),
                             ),
                             child: Row(
                               children: [
@@ -497,16 +552,19 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
                         padding: const EdgeInsets.fromLTRB(20, 12, 20, 10),
                         child: Row(
                           children: [
-                            _miniCard("Income", Icons.arrow_downward,
-                                _money(income)),
+                            _miniCard(context, "Income", Icons.arrow_downward,
+                                _money(income), iconBg: const Color(0xFFD1FAE5), iconColor: const Color(0xFF059669)),
                             const SizedBox(width: 12),
-                            _miniCard("Expense", Icons.arrow_upward,
-                                _money(expense)),
+                            _miniCard(context, "Expense", Icons.arrow_upward,
+                                _money(expense), iconBg: const Color(0xFFFEE2E2), iconColor: const Color(0xFFDC2626)),
                             const SizedBox(width: 12),
                             _miniCard(
+                              context,
                               "Balance",
                               Icons.account_balance_wallet_outlined,
                               _money(bal),
+                              iconBg: const Color(0xFFE0E7FF),
+                              iconColor: const Color(0xFF4F46E5),
                             ),
                           ],
                         ),
@@ -514,33 +572,6 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
 
                       // ====== WALLET OVERVIEW (Cash / Card) ======
                       _walletOverviewRow(),
-
-                      // ====== QUICK SHORTCUTS ======
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 18, 20, 10),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              "Quick shortcuts",
-                              style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w800,
-                                  color: Color(0xFF1E2A3B)),
-                            ),
-                            const SizedBox(height: 10),
-                            Row(
-                              children: [
-                                _chip("Food"),
-                                const SizedBox(width: 10),
-                                _chip("Transport"),
-                                const SizedBox(width: 10),
-                                _chip("Bills"),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
 
                       // ====== ACTION BUTTONS ======
                       Padding(
@@ -557,7 +588,7 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
                                     context,
                                     MaterialPageRoute(
                                       builder: (_) =>
-                                      const AddTransactionPage(),
+                                      const AddTransactionPage(type: 'expense'),
                                     ),
                                   );
                                   if (ok == true) _load();
@@ -575,7 +606,7 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
                                     context,
                                     MaterialPageRoute(
                                       builder: (_) =>
-                                      const AddTransactionPage(),
+                                      const AddTransactionPage(type: 'income'),
                                     ),
                                   );
                                   if (ok == true) _load();
@@ -589,21 +620,32 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
                       // ====== RECENT TRANSACTIONS ======
                       Padding(
                         padding: const EdgeInsets.fromLTRB(20, 6, 20, 12),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.receipt_long,
-                                color: Color(0xFF4F6DFF)),
-                            const SizedBox(width: 10),
-                            const Expanded(
-                              child: Text(
-                                "Recent transactions",
-                                style: TextStyle(
-                                    fontSize: 14, fontWeight: FontWeight.w800),
-                              ),
+                        child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        decoration: BoxDecoration(
+                            color: c.accentMuted.withValues(alpha: 0.6),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: c.accent.withValues(alpha: 0.2),
                             ),
-                            TextButton(
-                                onPressed: _load, child: const Text("Refresh")),
-                          ],
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.receipt_long,
+                                  color: c.accent, size: 22),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  "Recent transactions",
+                                  style: TextStyle(
+                                      fontSize: 14, fontWeight: FontWeight.w800,
+                                      color: c.textPrimary),
+                                ),
+                              ),
+                              TextButton(
+                                  onPressed: _load, child: const Text("Refresh")),
+                            ],
+                          ),
                         ),
                       ),
 
@@ -626,33 +668,39 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
             child: CustomBottomNav(currentIndex: 0),
           ),
         ],
+        ),
       ),
     );
   }
 
-  Widget _miniCard(String title, IconData icon, String amount) {
+  Widget _miniCard(BuildContext context, String title, IconData icon, String amount,
+      {Color? iconBg, Color? iconColor}) {
+    final c = ZenoPayColors.of(context);
+    final bg = iconBg ?? c.accentMuted;
+    final fg = iconColor ?? c.accent;
     return Expanded(
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: c.card,
           borderRadius: BorderRadius.circular(16),
-          boxShadow: const [
-            BoxShadow(color: Color(0x11000000), blurRadius: 16, offset: Offset(0, 8)),
+          boxShadow: [
+            BoxShadow(color: c.shadow.withValues(alpha: 0.08), blurRadius: 16, offset: const Offset(0, 8)),
+            BoxShadow(color: c.shadow.withValues(alpha: 0.08), blurRadius: 16, offset: const Offset(0, 8)),
           ],
         ),
         child: Column(
           children: [
             CircleAvatar(
-              backgroundColor: const Color(0xFFF2F4FF),
-              child: Icon(icon, color: const Color(0xFF4F6DFF)),
+              backgroundColor: bg,
+              child: Icon(icon, color: fg, size: 22),
             ),
             const SizedBox(height: 10),
             Text(title,
-                style: const TextStyle(
-                    fontWeight: FontWeight.w700, color: Color(0xFF56657A))),
+                style: TextStyle(
+                    fontWeight: FontWeight.w700, color: c.textSecondary)),
             const SizedBox(height: 6),
-            Text("Rs $amount", style: const TextStyle(fontWeight: FontWeight.w900)),
+            Text("Rs $amount", style: TextStyle(fontWeight: FontWeight.w900, color: c.textPrimary)),
           ],
         ),
       ),
@@ -660,29 +708,34 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
   }
 
   // ✅ Wallet overview helpers (same card style as your mini cards)
-  Widget _walletMiniCard(String title, IconData icon, String amount) {
+  Widget _walletMiniCard(BuildContext context, String title, IconData icon, String amount,
+      {Color? iconBg, Color? iconColor}) {
+    final c = ZenoPayColors.of(context);
+    final bg = iconBg ?? c.accentMuted;
+    final fg = iconColor ?? c.accent;
     return Expanded(
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: c.card,
           borderRadius: BorderRadius.circular(16),
-          boxShadow: const [
-            BoxShadow(color: Color(0x11000000), blurRadius: 16, offset: Offset(0, 8)),
+          boxShadow: [
+            BoxShadow(color: c.shadow.withValues(alpha: 0.08), blurRadius: 16, offset: const Offset(0, 8)),
+            BoxShadow(color: c.shadow.withValues(alpha: 0.08), blurRadius: 16, offset: const Offset(0, 8)),
           ],
         ),
         child: Column(
           children: [
             CircleAvatar(
-              backgroundColor: const Color(0xFFF2F4FF),
-              child: Icon(icon, color: const Color(0xFF4F6DFF)),
+              backgroundColor: bg,
+              child: Icon(icon, color: fg, size: 22),
             ),
             const SizedBox(height: 10),
             Text(title,
-                style: const TextStyle(
-                    fontWeight: FontWeight.w700, color: Color(0xFF56657A))),
+                style: TextStyle(
+                    fontWeight: FontWeight.w700, color: c.textSecondary)),
             const SizedBox(height: 6),
-            Text("Rs $amount", style: const TextStyle(fontWeight: FontWeight.w900)),
+            Text("Rs $amount", style: TextStyle(fontWeight: FontWeight.w900, color: c.textPrimary)),
           ],
         ),
       ),
@@ -704,25 +757,28 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
       child: Row(
         children: [
-          _walletMiniCard("Cash Balance", Icons.payments_outlined, _money(cash)),
+          _walletMiniCard(context, "Cash Balance", Icons.payments_outlined, _money(cash),
+              iconBg: const Color(0xFFFEF3C7), iconColor: const Color(0xFFD97706)),
           const SizedBox(width: 12),
-          _walletMiniCard("Card Balance", Icons.credit_card, _money(cardOrBank)),
+          _walletMiniCard(context, "Card Balance", Icons.credit_card, _money(cardOrBank),
+              iconBg: const Color(0xFFCCFBF1), iconColor: const Color(0xFF0D9488)),
         ],
       ),
     );
   }
 
-  Widget _chip(String label) {
+  Widget _chip(BuildContext context, String label) {
+    final c = ZenoPayColors.of(context);
     return Expanded(
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: c.card,
           borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: const Color(0xFFE6E9F0)),
+          border: Border.all(color: c.border),
         ),
         child: Center(
-          child: Text(label, style: const TextStyle(fontWeight: FontWeight.w700)),
+          child: Text(label, style: TextStyle(fontWeight: FontWeight.w700, color: c.textPrimary)),
         ),
       ),
     );
@@ -740,21 +796,37 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
       child: Container(
         height: 90,
         decoration: BoxDecoration(
-          color: color,
           borderRadius: BorderRadius.circular(18),
+          boxShadow: [
+            BoxShadow(
+              color: color.withValues(alpha: 0.4),
+              blurRadius: 12,
+              offset: const Offset(0, 6),
+            ),
+          ],
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              color,
+              Color.lerp(color, Colors.black, 0.15) ?? color,
+            ]!,
+          ),
         ),
         child: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               CircleAvatar(
-                backgroundColor: Colors.white.withOpacity(0.25),
-                child: Icon(icon, color: Colors.white),
+                backgroundColor: Colors.white.withOpacity(0.28),
+                child: Icon(icon, color: Colors.white, size: 26),
               ),
               const SizedBox(height: 10),
               Text(label,
                   style: const TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.w800)),
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 14)), // gradient button
             ],
           ),
         ),
@@ -763,17 +835,17 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
   }
 
   Widget _recentTransactionsList() {
+    final c = ZenoPayColors.of(context);
     if (transactions.isEmpty) {
       return Container(
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: c.card,
           borderRadius: BorderRadius.circular(16),
         ),
-        child: const Text(
+        child: Text(
           "No transactions yet.",
-          style:
-          TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF56657A)),
+          style: TextStyle(fontWeight: FontWeight.w700, color: c.textSecondary),
         ),
       );
     }
@@ -792,35 +864,39 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
         final isIncome = type == "income";
         final sign = isIncome ? "+" : "-";
 
+        final iconBg = isIncome ? const Color(0xFFD1FAE5) : const Color(0xFFFEE2E2);
+        final iconFg = isIncome ? const Color(0xFF059669) : const Color(0xFFDC2626);
         return Container(
           margin: const EdgeInsets.only(bottom: 10),
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: c.card,
             borderRadius: BorderRadius.circular(16),
-            boxShadow: const [
-              BoxShadow(color: Color(0x0D000000), blurRadius: 12, offset: Offset(0, 8)),
+            border: Border(left: BorderSide(color: iconFg.withValues(alpha: 0.4), width: 3)),
+            boxShadow: [
+              BoxShadow(color: c.shadow.withValues(alpha: 0.06), blurRadius: 12, offset: const Offset(0, 8)),
+              BoxShadow(color: c.shadow.withValues(alpha: 0.08), blurRadius: 12, offset: const Offset(0, 8)),
             ],
           ),
           child: Row(
             children: [
               CircleAvatar(
-                backgroundColor: const Color(0xFFF2F4FF),
-                child: Icon(iconData, color: const Color(0xFF4F6DFF)),
+                backgroundColor: iconBg,
+                child: Icon(iconData, color: iconFg, size: 22),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(category, style: const TextStyle(fontWeight: FontWeight.w800)),
+                    Text(category, style: TextStyle(fontWeight: FontWeight.w800, color: c.textPrimary)),
                     const SizedBox(height: 4),
                     Text(
                       (t["note"] ?? "").toString(),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                          color: Color(0xFF7B8799), fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                          color: c.textMuted, fontWeight: FontWeight.w600),
                     ),
                   ],
                 ),
@@ -830,7 +906,7 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
                 "$sign Rs ${_money(amount)}",
                 style: TextStyle(
                   fontWeight: FontWeight.w900,
-                  color: isIncome ? const Color(0xFF00C27A) : const Color(0xFFFF4A3D),
+                  color: isIncome ? c.success : c.error,
                 ),
               ),
             ],

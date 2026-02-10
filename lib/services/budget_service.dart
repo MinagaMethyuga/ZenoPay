@@ -4,6 +4,171 @@ import 'package:zenopay/models/budget_model.dart';
 
 const String _keyBudget = 'zenopay_budget_state';
 
+/// Maps each budget category name to transaction category names that count toward it.
+/// When user selects "Food & Drinks" then "Coffee", the transaction category is "Coffee"
+/// but it should count under a "Food" budget. This set includes main name + all subcategory labels.
+const Map<String, Set<String>> _budgetCategoryToTransactionNames = {
+  'Food': {
+    'Food',
+    'Food & Drinks',
+    'Fastfood',
+    'Restaurant',
+    'Coffee',
+    'Pizza',
+    'Ice Cream',
+    'Bar',
+    'Bakery',
+    'Groceries',
+  },
+  'Transport': {
+    'Transport',
+    'Bus',
+    'Car',
+    'Motorbike',
+    'Train',
+    'Taxi',
+    'Flight',
+    'Bicycle',
+    'Fuel',
+  },
+  'Bills': {
+    'Bills',
+    'Bills & Utilities',
+    'Bill',
+    'Electricity',
+    'Water',
+    'WiFi',
+    'Mobile',
+    'Subscriptions',
+    'Card',
+    'Bank',
+  },
+  'Shopping': {
+    'Shopping',
+    'Cart',
+    'Bag',
+    'Store',
+    'Mall',
+    'Tag',
+    'Package',
+  },
+  'Entertainment': {
+    'Entertainment',
+    'Movies',
+    'Music',
+    'Gaming',
+    'Headphones',
+    'Celebration',
+  },
+  'Health': {
+    'Health',
+    'Medical',
+    'Hospital',
+    'Medication',
+    'Wellness',
+    'Gym',
+    'Run',
+    'Soccer',
+    'Basketball',
+    'Tennis',
+    'Fitness & Sports',
+  },
+  'Education': {
+    'Education',
+    'School',
+    'Book',
+    'Notes',
+    'Calculator',
+    'Laptop',
+  },
+  'Rent': {
+    'Rent',
+    'Home',
+    'Cleaning',
+    'Furniture',
+    'Kitchen',
+    'Repair',
+    'Laundry',
+  },
+  'Other': {
+    'Other',
+    'Category',
+    'More',
+    'Nature',
+    'Attachment',
+    'Misc',
+    'Donation',
+    'Gift',
+    'Giftcard',
+    'Award',
+    'Family',
+    'Child',
+    'Pets',
+    'Love',
+    'Devices',
+    'Android',
+    'Router',
+    'Memory',
+    'Salon',
+    'Brush',
+    'Skincare',
+    'Luggage',
+    'Place',
+    'Beach',
+    'Hotel',
+    'Map',
+    'Salary',
+    'Work',
+    'Profit',
+    'Wallet',
+    'Money',
+    'Freelance',
+    'Allowance',
+  },
+  // Aliases so "Food & Drinks" / "Bills & Utilities" etc. also roll up subcategories
+  'Food & Drinks': {
+    'Food',
+    'Food & Drinks',
+    'Fastfood',
+    'Restaurant',
+    'Coffee',
+    'Pizza',
+    'Ice Cream',
+    'Bar',
+    'Bakery',
+    'Groceries',
+  },
+  'Bills & Utilities': {
+    'Bills',
+    'Bills & Utilities',
+    'Bill',
+    'Electricity',
+    'Water',
+    'WiFi',
+    'Mobile',
+    'Subscriptions',
+    'Card',
+    'Bank',
+  },
+  'Home': {
+    'Rent',
+    'Home',
+    'Cleaning',
+    'Furniture',
+    'Kitchen',
+    'Repair',
+    'Laundry',
+  },
+  'Fitness & Sports': {
+    'Gym',
+    'Run',
+    'Soccer',
+    'Basketball',
+    'Tennis',
+    'Fitness & Sports',
+  },
+};
+
 class BudgetService {
   static Future<BudgetState> load() async {
     final prefs = await SharedPreferences.getInstance();
@@ -49,6 +214,23 @@ class BudgetService {
       spent[cat] = (spent[cat] ?? 0) + amount;
     }
     return spent;
+  }
+
+  /// Total spent for a budget category this month, including all subcategories.
+  /// E.g. budget "Food" includes transactions categorized as Food, Coffee, Restaurant, etc.
+  static double spentForBudgetCategory(
+    Map<String, double> spentByCategory,
+    String budgetCategoryName,
+  ) {
+    final names = _budgetCategoryToTransactionNames[budgetCategoryName];
+    if (names == null) {
+      return spentByCategory[budgetCategoryName] ?? 0;
+    }
+    double total = 0;
+    for (final name in names) {
+      total += spentByCategory[name] ?? 0;
+    }
+    return total;
   }
 
   /// Days left in current month (at least 1).

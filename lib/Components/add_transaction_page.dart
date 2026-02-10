@@ -1,4 +1,3 @@
-import "dart:convert";
 import "dart:io";
 import "dart:math";
 import "package:zenopay/services/api_client.dart";
@@ -8,6 +7,9 @@ import "package:http/http.dart" as http;
 import "package:image_picker/image_picker.dart";
 import "package:zenopay/core/config.dart";
 import "package:zenopay/state/current_user.dart";
+import "package:zenopay/services/budget_service.dart";
+import "package:zenopay/services/budget_notification_service.dart";
+import "package:zenopay/theme/zenopay_colors.dart";
 
 // -------------------- Models --------------------
 
@@ -707,6 +709,33 @@ class _AddTransactionPageState extends State<AddTransactionPage> with TickerProv
 
       await CurrentUser.refreshCurrentUser();
 
+      // Check budgets and send notifications if needed
+      if (!isIncome) {
+        try {
+          final dio2 = await ApiClient.instance(AppConfig.apiBaseUrl);
+          final res2 = await dio2.get("/transactions");
+          final data2 = res2.data;
+          Map<String, dynamic> decoded2;
+          if (data2 is Map<String, dynamic>) {
+            decoded2 = data2;
+          } else if (data2 is Map) {
+            decoded2 = data2.cast<String, dynamic>();
+          } else {
+            decoded2 = <String, dynamic>{};
+          }
+          final list2 = (decoded2['transactions'] as List? ?? const <dynamic>[]);
+          final mapped2 = list2
+              .whereType<Map>()
+              .map((e) => e.cast<String, dynamic>())
+              .toList();
+
+          final budget = await BudgetService.load();
+          await BudgetNotificationService.checkBudgetsAndNotify(budget, mapped2);
+        } catch (_) {
+          // Silently fail - notification check shouldn't block transaction save
+        }
+      }
+
       if (!mounted) return;
       HapticFeedback.lightImpact();
       _toast("Saved • +5 XP");
@@ -734,8 +763,9 @@ class _AddTransactionPageState extends State<AddTransactionPage> with TickerProv
 
   @override
   Widget build(BuildContext context) {
+    final c = ZenoPayColors.of(context);
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: c.surface,
       body: Stack(
         children: [
           _animatedHeaderBackground(),
@@ -870,16 +900,17 @@ class _AddTransactionPageState extends State<AddTransactionPage> with TickerProv
   }
 
   Widget _typeToggle() {
+    final c = ZenoPayColors.of(context);
     final isIncome = txType == TxType.income;
 
     return Container(
       padding: const EdgeInsets.all(6),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.90),
+        color: c.card,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: c.border),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 18, offset: const Offset(0, 8)),
+          BoxShadow(color: c.shadow.withValues(alpha: 0.08), blurRadius: 18, offset: const Offset(0, 8)),
         ],
       ),
       child: Row(
@@ -931,6 +962,8 @@ class _AddTransactionPageState extends State<AddTransactionPage> with TickerProv
     required Color color,
     required VoidCallback onTap,
   }) {
+    final c = ZenoPayColors.of(context);
+    final unselectedColor = c.textSecondary;
     return InkWell(
       borderRadius: BorderRadius.circular(14),
       onTap: onTap,
@@ -944,11 +977,11 @@ class _AddTransactionPageState extends State<AddTransactionPage> with TickerProv
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: selected ? Colors.white : const Color(0xFF475569)),
+            Icon(icon, color: selected ? Colors.white : unselectedColor),
             const SizedBox(width: 8),
             Text(
               label,
-              style: TextStyle(fontWeight: FontWeight.w900, color: selected ? Colors.white : const Color(0xFF475569)),
+              style: TextStyle(fontWeight: FontWeight.w900, color: selected ? Colors.white : unselectedColor),
             ),
           ],
         ),
@@ -980,22 +1013,22 @@ class _AddTransactionPageState extends State<AddTransactionPage> with TickerProv
             return Transform.translate(offset: Offset(dx, 0), child: child);
           },
           child: _card(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    _pillIcon(Icons.currency_exchange),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        "Amount",
-                        style: TextStyle(color: Colors.grey.shade700, fontWeight: FontWeight.w900),
-                      ),
-                    ),
-                    _dateChip(),
-                  ],
-                ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            _pillIcon(Icons.currency_exchange),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                "Amount",
+                                style: TextStyle(color: ZenoPayColors.of(context).textSecondary, fontWeight: FontWeight.w900),
+                              ),
+                            ),
+                            _dateChip(),
+                          ],
+                        ),
                 const SizedBox(height: 14),
                 _amountDisplay(),
                 const SizedBox(height: 12),
@@ -1018,23 +1051,24 @@ class _AddTransactionPageState extends State<AddTransactionPage> with TickerProv
   }
 
   Widget _dateChip() {
+    final c = ZenoPayColors.of(context);
     return InkWell(
       onTap: _pickDateTime,
       borderRadius: BorderRadius.circular(14),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
-          color: const Color(0xFFF1F5F9),
+          color: c.surfaceVariant,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
+          border: Border.all(color: c.border),
         ),
         child: Row(
           children: [
-            const Icon(Icons.access_time, size: 16, color: Color(0xFF475569)),
+            Icon(Icons.access_time, size: 16, color: c.textSecondary),
             const SizedBox(width: 6),
             Text(
               _fmtDate(occurredAt),
-              style: const TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF475569), fontSize: 12),
+              style: TextStyle(fontWeight: FontWeight.w800, color: c.textSecondary, fontSize: 12),
             ),
           ],
         ),
@@ -1043,17 +1077,18 @@ class _AddTransactionPageState extends State<AddTransactionPage> with TickerProv
   }
 
   Widget _amountDisplay() {
+    final c = ZenoPayColors.of(context);
     final display = amountText.contains(".") ? amountText : "$amountText.00";
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
+        color: c.surfaceVariant,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: c.border),
       ),
       child: Row(
         children: [
-          const Text("LKR", style: TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF475569))),
+          Text("LKR", style: TextStyle(fontWeight: FontWeight.w900, color: c.textSecondary)),
           const SizedBox(width: 10),
           Expanded(
             child: TweenAnimationBuilder<double>(
@@ -1064,7 +1099,7 @@ class _AddTransactionPageState extends State<AddTransactionPage> with TickerProv
               child: Text(
                 _fmtMoney(display),
                 textAlign: TextAlign.end,
-                style: const TextStyle(fontSize: 34, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
+                style: TextStyle(fontSize: 34, fontWeight: FontWeight.w900, color: c.textPrimary),
               ),
             ),
           ),
@@ -1074,13 +1109,14 @@ class _AddTransactionPageState extends State<AddTransactionPage> with TickerProv
   }
 
   Widget _walletToggle() {
+    final c = ZenoPayColors.of(context);
     final isCash = wallet == WalletType.cash;
     return Container(
       padding: const EdgeInsets.all(6),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.94),
+        color: c.card,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: c.border),
       ),
       child: Row(
         children: [
@@ -1089,7 +1125,7 @@ class _AddTransactionPageState extends State<AddTransactionPage> with TickerProv
               label: "Cash",
               selected: isCash,
               icon: Icons.payments_outlined,
-              color: const Color(0xFF111827),
+              color: c.accent,
               onTap: () => setState(() => wallet = WalletType.cash),
             ),
           ),
@@ -1099,7 +1135,7 @@ class _AddTransactionPageState extends State<AddTransactionPage> with TickerProv
               label: "Bank",
               selected: !isCash,
               icon: Icons.account_balance_outlined,
-              color: const Color(0xFF111827),
+              color: c.accent,
               onTap: () => setState(() => wallet = WalletType.bank),
             ),
           ),
@@ -1130,9 +1166,9 @@ class _AddTransactionPageState extends State<AddTransactionPage> with TickerProv
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 160),
             decoration: BoxDecoration(
-              color: const Color(0xFFF8FAFC),
+              color: ZenoPayColors.of(context).surfaceVariant,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
+              border: Border.all(color: ZenoPayColors.of(context).border),
             ),
             child: Center(
               child: Text(
@@ -1140,7 +1176,7 @@ class _AddTransactionPageState extends State<AddTransactionPage> with TickerProv
                 style: TextStyle(
                   fontSize: isDelete ? 22 : 24,
                   fontWeight: FontWeight.w900,
-                  color: isDelete ? const Color(0xFFEF4444) : const Color(0xFF0F172A),
+                  color: isDelete ? ZenoPayColors.of(context).error : ZenoPayColors.of(context).textPrimary,
                 ),
               ),
             ),
@@ -1163,7 +1199,7 @@ class _AddTransactionPageState extends State<AddTransactionPage> with TickerProv
               Row(children: [
                 _pillIcon(Icons.edit_note),
                 const SizedBox(width: 10),
-                const Text("Details", style: TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF334155))),
+                Text("Details", style: TextStyle(fontWeight: FontWeight.w900, color: ZenoPayColors.of(context).textPrimary)),
               ]),
               const SizedBox(height: 14),
 
@@ -1175,7 +1211,7 @@ class _AddTransactionPageState extends State<AddTransactionPage> with TickerProv
                   labelText: "Title",
                   hintText: txType == TxType.income ? "e.g. Salary, Allowance" : "e.g. Lunch, Bus fare",
                   filled: true,
-                  fillColor: const Color(0xFFF8FAFC),
+                  fillColor: ZenoPayColors.of(context).surfaceVariant,
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(18)),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(18),
@@ -1192,9 +1228,9 @@ class _AddTransactionPageState extends State<AddTransactionPage> with TickerProv
                 child: Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF8FAFC),
+                    color: ZenoPayColors.of(context).surfaceVariant,
                     borderRadius: BorderRadius.circular(18),
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                    border: Border.all(color: ZenoPayColors.of(context).border),
                   ),
                   child: Row(
                     children: [
@@ -1202,23 +1238,23 @@ class _AddTransactionPageState extends State<AddTransactionPage> with TickerProv
                         width: 42,
                         height: 42,
                     decoration: BoxDecoration(
-                      color: (selectedCategory?.color ?? const Color(0xFF64748B))
+                      color: (selectedCategory?.color ?? ZenoPayColors.of(context).textSecondary)
                           .withValues(alpha: 0.18),
                       shape: BoxShape.circle,
                     ),
                         child: Icon(
                           IconRegistry.byKey(selectedCategory?.iconKey ?? "mi:category"),
-                          color: selectedCategory?.color ?? const Color(0xFF64748B),
+                          color: selectedCategory?.color ?? ZenoPayColors.of(context).textSecondary,
                         ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
                           selectedCategory?.name ?? "Select Category",
-                          style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
+                          style: TextStyle(fontWeight: FontWeight.w900, color: ZenoPayColors.of(context).textPrimary),
                         ),
                       ),
-                      const Icon(Icons.chevron_right, color: Color(0xFF64748B)),
+                      Icon(Icons.chevron_right, color: ZenoPayColors.of(context).textSecondary),
                     ],
                   ),
                 ),
@@ -1233,7 +1269,7 @@ class _AddTransactionPageState extends State<AddTransactionPage> with TickerProv
                   labelText: "Note (optional)",
                   hintText: "Add extra details…",
                   filled: true,
-                  fillColor: const Color(0xFFF8FAFC),
+                  fillColor: ZenoPayColors.of(context).surfaceVariant,
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(18)),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(18),
@@ -1278,7 +1314,7 @@ class _AddTransactionPageState extends State<AddTransactionPage> with TickerProv
               Row(children: [
                 _pillIcon(Icons.receipt),
                 const SizedBox(width: 10),
-                const Text("Receipt (optional)", style: TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF334155))),
+                Text("Receipt (optional)", style: TextStyle(fontWeight: FontWeight.w900, color: ZenoPayColors.of(context).textPrimary)),
               ]),
               const SizedBox(height: 14),
               if (receipt == null)
@@ -1319,12 +1355,12 @@ class _AddTransactionPageState extends State<AddTransactionPage> with TickerProv
                         receipt!.name,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+                        style: TextStyle(fontWeight: FontWeight.w800, color: ZenoPayColors.of(context).textPrimary),
                       ),
                     ),
                     IconButton(
                       onPressed: () => setState(() => receipt = null),
-                      icon: const Icon(Icons.close, color: Color(0xFFEF4444)),
+                      icon: Icon(Icons.close, color: ZenoPayColors.of(context).error),
                     )
                   ],
                 ),
@@ -1339,7 +1375,7 @@ class _AddTransactionPageState extends State<AddTransactionPage> with TickerProv
               Row(children: [
                 _pillIcon(Icons.fact_check),
                 const SizedBox(width: 10),
-                const Text("Review", style: TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF334155))),
+                Text("Review", style: TextStyle(fontWeight: FontWeight.w900, color: ZenoPayColors.of(context).textPrimary)),
               ]),
               const SizedBox(height: 12),
               _reviewRow("Type", txType == TxType.income ? "Income" : "Expense"),
@@ -1371,17 +1407,18 @@ class _AddTransactionPageState extends State<AddTransactionPage> with TickerProv
   }
 
   Widget _reviewRow(String k, String v) {
+    final c = ZenoPayColors.of(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Row(
         children: [
-          Expanded(child: Text(k, style: const TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w800))),
+          Expanded(child: Text(k, style: TextStyle(color: c.textSecondary, fontWeight: FontWeight.w800))),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               v,
               textAlign: TextAlign.end,
-              style: const TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.w900),
+              style: TextStyle(color: c.textPrimary, fontWeight: FontWeight.w900),
             ),
           ),
         ],
@@ -1392,14 +1429,15 @@ class _AddTransactionPageState extends State<AddTransactionPage> with TickerProv
   // -------------------- UI helpers --------------------
 
   Widget _card({required Widget child}) {
+    final c = ZenoPayColors.of(context);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.94),
+        color: c.card,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: c.border),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 18, offset: const Offset(0, 8)),
+          BoxShadow(color: c.shadow.withValues(alpha: 0.08), blurRadius: 18, offset: const Offset(0, 8)),
         ],
       ),
       child: child,
@@ -1447,21 +1485,23 @@ class _AddTransactionPageState extends State<AddTransactionPage> with TickerProv
   }
 
   Widget _secondaryButton({required String label, required IconData icon, required VoidCallback onTap}) {
+    final c = ZenoPayColors.of(context);
     return SizedBox(
       height: 56,
       child: OutlinedButton(
         onPressed: onTap,
         style: OutlinedButton.styleFrom(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-          side: const BorderSide(color: Color(0xFFE2E8F0), width: 2),
-          backgroundColor: Colors.white.withValues(alpha: 0.92),
+          side: BorderSide(color: c.border, width: 2),
+          backgroundColor: c.card,
+          foregroundColor: c.textPrimary,
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: const Color(0xFF0F172A)),
+            Icon(icon, color: c.textPrimary),
             const SizedBox(width: 10),
-            Text(label, style: const TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.w900)),
+            Text(label, style: TextStyle(color: c.textPrimary, fontWeight: FontWeight.w900)),
           ],
         ),
       ),
@@ -1469,6 +1509,7 @@ class _AddTransactionPageState extends State<AddTransactionPage> with TickerProv
   }
 
   Widget _actionCard({required IconData icon, required String title, required VoidCallback onTap}) {
+    final c = ZenoPayColors.of(context);
     return InkWell(
       borderRadius: BorderRadius.circular(18),
       onTap: onTap,
@@ -1476,15 +1517,15 @@ class _AddTransactionPageState extends State<AddTransactionPage> with TickerProv
         height: 72,
         padding: const EdgeInsets.symmetric(horizontal: 14),
         decoration: BoxDecoration(
-          color: const Color(0xFFF8FAFC),
+          color: c.surfaceVariant,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
+          border: Border.all(color: c.border),
         ),
         child: Row(
           children: [
-            Icon(icon, color: const Color(0xFF0F172A)),
+            Icon(icon, color: c.textPrimary),
             const SizedBox(width: 10),
-            Text(title, style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF0F172A))),
+            Text(title, style: TextStyle(fontWeight: FontWeight.w900, color: c.textPrimary)),
           ],
         ),
       ),
@@ -1516,6 +1557,7 @@ class _CategoryPickerSheetState extends State<_CategoryPickerSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final themeColors = ZenoPayColors.of(context);
     final media = MediaQuery.of(context);
     final sheetH = min(media.size.height * 0.86, 720.0);
 
@@ -1526,11 +1568,11 @@ class _CategoryPickerSheetState extends State<_CategoryPickerSheet> {
       height: sheetH,
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: themeColors.card,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.12),
+            color: themeColors.shadow.withValues(alpha: 0.15),
             blurRadius: 26,
             offset: const Offset(0, -8),
           )
@@ -1541,16 +1583,16 @@ class _CategoryPickerSheetState extends State<_CategoryPickerSheet> {
           Container(
             width: 44,
             height: 5,
-            decoration: BoxDecoration(color: const Color(0xFFE2E8F0), borderRadius: BorderRadius.circular(999)),
+            decoration: BoxDecoration(color: themeColors.border, borderRadius: BorderRadius.circular(999)),
           ),
           const SizedBox(height: 12),
 
           Row(
             children: [
-              const Icon(Icons.category_outlined, color: Color(0xFF0F172A)),
+              Icon(Icons.category_outlined, color: themeColors.textPrimary),
               const SizedBox(width: 8),
-              const Expanded(
-                child: Text("Select Category", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
+              Expanded(
+                child: Text("Select Category", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: themeColors.textPrimary)),
               ),
               TextButton.icon(
                 onPressed: _openNewCategory,
@@ -1570,7 +1612,7 @@ class _CategoryPickerSheetState extends State<_CategoryPickerSheet> {
                     prefixIcon: const Icon(Icons.search),
                     hintText: "Search icons…",
                     filled: true,
-                    fillColor: const Color(0xFFF8FAFC),
+                    fillColor: themeColors.surfaceVariant,
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(18)),
                   ),
                   onChanged: (v) => setState(() => query = v),
@@ -1583,15 +1625,15 @@ class _CategoryPickerSheetState extends State<_CategoryPickerSheet> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF8FAFC),
+                    color: themeColors.surfaceVariant,
                     borderRadius: BorderRadius.circular(18),
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                    border: Border.all(color: themeColors.border),
                   ),
                   child: Row(
                     children: [
-                      Icon(allMode ? Icons.apps : Icons.view_list, color: const Color(0xFF0F172A)),
+                      Icon(allMode ? Icons.apps : Icons.view_list, color: themeColors.textPrimary),
                       const SizedBox(width: 6),
-                      Text(allMode ? "All" : "Groups", style: const TextStyle(fontWeight: FontWeight.w900)),
+                      Text(allMode ? "All" : "Groups", style: TextStyle(fontWeight: FontWeight.w900, color: themeColors.textPrimary)),
                     ],
                   ),
                 ),
@@ -1617,13 +1659,13 @@ class _CategoryPickerSheetState extends State<_CategoryPickerSheet> {
                         duration: const Duration(milliseconds: 180),
                         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                         decoration: BoxDecoration(
-                          color: sel ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+                          color: sel ? themeColors.accent : themeColors.surfaceVariant,
                           borderRadius: BorderRadius.circular(999),
                         ),
                         child: Text(
                           g,
                           style: TextStyle(
-                            color: sel ? Colors.white : const Color(0xFF0F172A),
+                            color: sel ? Colors.white : themeColors.textPrimary,
                             fontWeight: FontWeight.w900,
                           ),
                         ),
@@ -1638,7 +1680,7 @@ class _CategoryPickerSheetState extends State<_CategoryPickerSheet> {
 
           Align(
             alignment: Alignment.centerLeft,
-            child: Text("Your categories", style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey.shade700)),
+            child: Text("Your categories", style: TextStyle(fontWeight: FontWeight.w900, color: themeColors.textSecondary)),
           ),
           const SizedBox(height: 8),
           SizedBox(
@@ -1648,19 +1690,19 @@ class _CategoryPickerSheetState extends State<_CategoryPickerSheet> {
               itemCount: widget.existing.length,
               separatorBuilder: (context, _) => const SizedBox(width: 10),
               itemBuilder: (_, i) {
-                final c = widget.existing[i];
-                final sel = widget.current?.id == c.id;
+                final cat = widget.existing[i];
+                final sel = widget.current?.id == cat.id;
                 return InkWell(
                   borderRadius: BorderRadius.circular(18),
-                  onTap: () => Navigator.pop(context, c),
+                  onTap: () => Navigator.pop(context, cat),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 180),
                     width: 140,
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: sel ? c.color.withValues(alpha: 0.16) : const Color(0xFFF8FAFC),
+                      color: sel ? cat.color.withValues(alpha: 0.16) : themeColors.surfaceVariant,
                       borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: sel ? c.color : const Color(0xFFE2E8F0), width: 2),
+                      border: Border.all(color: sel ? cat.color : themeColors.border, width: 2),
                     ),
                     child: Row(
                       children: [
@@ -1669,19 +1711,19 @@ class _CategoryPickerSheetState extends State<_CategoryPickerSheet> {
                           height: 42,
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
-                              colors: [c.color.withValues(alpha: 0.95), c.color.withValues(alpha: 0.55)],
+                              colors: [cat.color.withValues(alpha: 0.95), cat.color.withValues(alpha: 0.55)],
                             ),
                             shape: BoxShape.circle,
                           ),
-                          child: Icon(IconRegistry.byKey(c.iconKey), color: Colors.white),
+                          child: Icon(IconRegistry.byKey(cat.iconKey), color: Colors.white),
                         ),
                         const SizedBox(width: 10),
                         Expanded(
                           child: Text(
-                            c.name,
+                            cat.name,
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontWeight: FontWeight.w900),
+                            style: TextStyle(fontWeight: FontWeight.w900, color: themeColors.textPrimary),
                           ),
                         ),
                       ],
@@ -1694,13 +1736,14 @@ class _CategoryPickerSheetState extends State<_CategoryPickerSheet> {
 
           const SizedBox(height: 10),
 
-          Expanded(child: _iconGrid(allMode ? filteredIcons : groupIcons)),
+          Expanded(child: _iconGrid(context, allMode ? filteredIcons : groupIcons)),
         ],
       ),
     );
   }
 
-  Widget _iconGrid(List<IconOption> icons) {
+  Widget _iconGrid(BuildContext context, List<IconOption> icons) {
+    final c = ZenoPayColors.of(context);
     return GridView.builder(
       padding: const EdgeInsets.only(top: 6),
       itemCount: icons.length,
@@ -1717,11 +1760,11 @@ class _CategoryPickerSheetState extends State<_CategoryPickerSheet> {
           onTap: () => _quickCreateFromIcon(opt),
           child: Container(
             decoration: BoxDecoration(
-              color: const Color(0xFFF8FAFC),
+              color: c.surfaceVariant,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
+              border: Border.all(color: c.border),
             ),
-            child: Icon(opt.icon, color: const Color(0xFF0F172A)),
+            child: Icon(opt.icon, color: c.textPrimary),
           ),
         );
       },
@@ -1793,8 +1836,10 @@ class _NewCategoryDialogState extends State<_NewCategoryDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final c = ZenoPayColors.of(context);
     return AlertDialog(
-      title: const Text("Create Category", style: TextStyle(fontWeight: FontWeight.w900)),
+      backgroundColor: c.card,
+      title: Text("Create Category", style: TextStyle(fontWeight: FontWeight.w900, color: c.textPrimary)),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -1802,9 +1847,9 @@ class _NewCategoryDialogState extends State<_NewCategoryDialog> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: const Color(0xFFF8FAFC),
+                color: c.surfaceVariant,
                 borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
+                border: Border.all(color: c.border),
               ),
               child: Row(
                 children: [
@@ -1821,7 +1866,7 @@ class _NewCategoryDialogState extends State<_NewCategoryDialog> {
                   Expanded(
                     child: Text(
                       nameCtrl.text.trim().isEmpty ? "Category name" : nameCtrl.text.trim(),
-                      style: const TextStyle(fontWeight: FontWeight.w900),
+                      style: TextStyle(fontWeight: FontWeight.w900, color: c.textPrimary),
                     ),
                   ),
                 ],
@@ -1855,7 +1900,7 @@ class _NewCategoryDialogState extends State<_NewCategoryDialog> {
 
             Align(
               alignment: Alignment.centerLeft,
-              child: Text("Color", style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey.shade700)),
+              child: Text("Color", style: TextStyle(fontWeight: FontWeight.w900, color: c.textSecondary)),
             ),
             const SizedBox(height: 8),
             Wrap(
@@ -1884,7 +1929,7 @@ class _NewCategoryDialogState extends State<_NewCategoryDialog> {
 
             Align(
               alignment: Alignment.centerLeft,
-              child: Text("Icon", style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey.shade700)),
+              child: Text("Icon", style: TextStyle(fontWeight: FontWeight.w900, color: c.textSecondary)),
             ),
             const SizedBox(height: 8),
             // IMPORTANT: Avoid GridView/ListView inside AlertDialog (can trigger intrinsic-size errors).
@@ -1905,11 +1950,11 @@ class _NewCategoryDialogState extends State<_NewCategoryDialog> {
                         width: 52,
                         height: 52,
                         decoration: BoxDecoration(
-                          color: sel ? color.withValues(alpha: 0.16) : const Color(0xFFF8FAFC),
+                          color: sel ? color.withValues(alpha: 0.16) : c.surfaceVariant,
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: sel ? color : const Color(0xFFE2E8F0), width: 2),
+                          border: Border.all(color: sel ? color : c.border, width: 2),
                         ),
-                        child: Icon(opt.icon, color: sel ? color : const Color(0xFF64748B)),
+                        child: Icon(opt.icon, color: sel ? color : c.textSecondary),
                       ),
                     );
                   }).toList(),
@@ -1921,7 +1966,7 @@ class _NewCategoryDialogState extends State<_NewCategoryDialog> {
             SwitchListTile(
               value: frequent,
               onChanged: (v) => setState(() => frequent = v),
-              title: const Text("Show as frequent shortcut"),
+              title: Text("Show as frequent shortcut", style: TextStyle(color: c.textPrimary)),
               contentPadding: EdgeInsets.zero,
             ),
           ],

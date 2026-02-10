@@ -44,21 +44,22 @@ class _StreakCelebrationWidgetState extends State<_StreakCelebrationWidget>
     super.initState();
 
     _scaleController = AnimationController(
-      duration: const Duration(milliseconds: 400),
+      duration: const Duration(milliseconds: 900),
       vsync: this,
     );
 
     _fadeController = AnimationController(
-      duration: const Duration(milliseconds: 600),
+      duration: const Duration(milliseconds: 1400),
       vsync: this,
     );
 
+    // Use a curve that stays in [0,1] - easeOutBack overshoots and breaks TweenSequence assertion
     _scaleAnimation = TweenSequence<double>([
       TweenSequenceItem(tween: Tween(begin: 0.0, end: 1.25), weight: 50),
       TweenSequenceItem(tween: Tween(begin: 1.25, end: 1.0), weight: 50),
     ]).animate(CurvedAnimation(
       parent: _scaleController,
-      curve: Curves.easeOutBack,
+      curve: Curves.easeOutCubic,
     ));
 
     _fadeAnimation = TweenSequence<double>([
@@ -73,7 +74,7 @@ class _StreakCelebrationWidgetState extends State<_StreakCelebrationWidget>
     _scaleController.forward();
     _fadeController.forward();
 
-    Future<void>.delayed(const Duration(milliseconds: 2500), () {
+    Future<void>.delayed(const Duration(milliseconds: 6500), () {
       if (mounted) {
         StreakCelebrationOverlay._remove();
       }

@@ -34,6 +34,20 @@ class _LoginState extends State<Login> with TickerProviderStateMixin {
     );
   }
 
+  void _showLoginError() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Email or password incorrect',
+          style: TextStyle(fontSize: 14, color: Colors.white, fontWeight: FontWeight.w500),
+        ),
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+        backgroundColor: const Color(0xFF1E2A3B),
+      ),
+    );
+  }
+
   Future<void> _doLogin() async {
     final email = _emailController.text.trim();
     final pass = _passwordController.text;
@@ -50,7 +64,8 @@ class _LoginState extends State<Login> with TickerProviderStateMixin {
       if (!mounted) return;
       Navigator.pushNamedAndRemoveUntil(context, '/home', (r) => false);
     } catch (e) {
-      _toast("Login failed: $e");
+      if (!mounted) return;
+      _showLoginError();
     } finally {
       if (mounted) setState(() => _loading = false);
     }

@@ -37,13 +37,15 @@ class CurrentUser {
       return null;
     }
 
+    final hadPreviousUser = value != null;
     final oldStreak = value?.profile?.currentStreak ?? 0;
     final user = ZenoUser.fromJson(userJson);
     final newStreak = user.profile?.currentStreak ?? 0;
 
     set(user);
 
-    if (newStreak > oldStreak && newStreak > 0) {
+    // Only show when streak actually increased during this session (not on first login)
+    if (hadPreviousUser && newStreak > oldStreak && newStreak > 0) {
       StreakCelebrationOverlay.show();
     }
 

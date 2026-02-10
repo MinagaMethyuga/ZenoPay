@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:zenopay/Components/CustomBottomNav.dart';
 import 'package:zenopay/Components/FullPageLoader.dart';
+import 'package:zenopay/Components/StreakCelebrationOverlay.dart';
+import 'package:zenopay/core/app_nav_key.dart';
 import 'package:zenopay/models/challenge_model.dart';
 import 'package:zenopay/models/user_model.dart';
 import 'package:zenopay/services/auth_api.dart';
 import 'package:zenopay/services/challenge_service.dart';
+import 'package:zenopay/state/app_theme.dart';
 import 'package:zenopay/state/current_user.dart';
+import 'package:zenopay/theme/zenopay_colors.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -82,15 +86,17 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
+    final c = ZenoPayColors.of(context);
+
     if (_loading) {
-      return const Scaffold(
-        backgroundColor: Color(0xFFF8FAFC),
-        body: FullPageLoader(accentColor: Color(0xFF4F6DFF)),
+      return Scaffold(
+        backgroundColor: c.surface,
+        body: const FullPageLoader(accentColor: Color(0xFF4F6DFF)),
       );
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: c.surface,
       body: Stack(
         children: [
           SafeArea(
@@ -129,7 +135,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [const Color(0xFFF8FAFC).withValues(alpha: 0), const Color(0xFFF8FAFC)],
+                  colors: [c.surface.withValues(alpha: 0), c.surface],
                 ),
               ),
               child: CustomBottomNav(currentIndex: 5),
@@ -141,19 +147,20 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildHeader() {
+    final c = ZenoPayColors.of(context);
     return Row(
       children: [
         Container(
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: c.card,
             borderRadius: BorderRadius.circular(14),
-            boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 12, offset: Offset(0, 8))],
+            boxShadow: [BoxShadow(color: c.shadow.withValues(alpha: 0.08), blurRadius: 12, offset: const Offset(0, 8))],
           ),
-          child: const Icon(Icons.person_rounded, color: Color(0xFF4F6DFF), size: 28),
+          child: Icon(Icons.person_rounded, color: c.accent, size: 28),
         ),
         const SizedBox(width: 14),
-        const Expanded(
+        Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -162,42 +169,188 @@ class _ProfilePageState extends State<ProfilePage> {
                 style: TextStyle(
                   fontSize: 26,
                   fontWeight: FontWeight.w800,
-                  color: Color(0xFF1E2A3B),
+                  color: c.textPrimary,
                   letterSpacing: -0.5,
                 ),
               ),
-              SizedBox(height: 2),
+              const SizedBox(height: 2),
               Text(
                 'Your level, XP & badges',
                 style: TextStyle(
                   fontSize: 13,
-                  color: Color(0xFF64748B),
+                  color: c.textSecondary,
                   fontWeight: FontWeight.w500,
                 ),
               ),
             ],
           ),
         ),
+        Container(
+          decoration: BoxDecoration(
+            color: c.card,
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: [BoxShadow(color: c.shadow.withValues(alpha: 0.08), blurRadius: 12, offset: const Offset(0, 8))],
+          ),
+          child: IconButton(
+            onPressed: () => _showSettingsSheet(context),
+            icon: const Icon(Icons.settings_rounded, color: Color(0xFF4F6DFF), size: 26),
+            tooltip: 'Settings',
+          ),
+        ),
       ],
     );
   }
 
+  void _showSettingsSheet(BuildContext context) {
+    final c = ZenoPayColors.of(context);
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
+        decoration: BoxDecoration(
+          color: c.card,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          boxShadow: [BoxShadow(color: c.shadow.withValues(alpha: 0.08), blurRadius: 12, offset: const Offset(0, -4))],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: c.textSecondary.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Settings',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+                color: c.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 16),
+            ValueListenableBuilder<ThemeMode>(
+              valueListenable: AppTheme.notifier,
+              builder: (context, themeMode, _) {
+                final darkOn = themeMode == ThemeMode.dark;
+                return Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          darkOn ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
+                          color: c.accent,
+                          size: 22,
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          'Dark mode',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: c.textPrimary,
+                          ),
+                        ),
+                      ],
+                    ),
+                    Switch(
+                      value: darkOn,
+                      onChanged: (_) async {
+                        await AppTheme.toggle();
+                      },
+                      activeTrackColor: const Color(0xFF4F6DFF).withValues(alpha: 0.5),
+                      activeThumbColor: const Color(0xFF4F6DFF),
+                    ),
+                  ],
+                );
+              },
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              height: 52,
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  _logout();
+                },
+                icon: const Icon(Icons.logout_rounded, size: 22),
+                label: const Text('Log out'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.red,
+                  side: const BorderSide(color: Colors.red),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _logout() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Log out'),
+        content: const Text('Are you sure you want to log out?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Log out', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true || !mounted) return;
+    try {
+      final auth = AuthApi();
+      await auth.logout();
+      if (!mounted) return;
+      navKey.currentState?.pushNamedAndRemoveUntil('/login', (r) => false);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Logout failed: ${e.toString()}'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
   Widget _buildError() {
+    final c = ZenoPayColors.of(context);
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: c.card,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 12, offset: Offset(0, 8))],
-        border: Border.all(color: Colors.red.withValues(alpha: 0.5)),
+        boxShadow: [BoxShadow(color: c.shadow.withValues(alpha: 0.08), blurRadius: 12, offset: const Offset(0, 8))],
+        border: Border.all(color: c.error.withValues(alpha: 0.5)),
       ),
       child: Column(
         children: [
-          const Icon(Icons.error_outline, color: Colors.red, size: 40),
+          Icon(Icons.error_outline, color: c.error, size: 40),
           const SizedBox(height: 12),
           Text(
             _error ?? 'Something went wrong',
-            style: const TextStyle(color: Color(0xFF64748B), fontSize: 13),
+            style: TextStyle(color: c.textSecondary, fontSize: 13),
             textAlign: TextAlign.center,
           ),
         ],
@@ -206,6 +359,7 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildProfileCard() {
+    final c = ZenoPayColors.of(context);
     final user = _user ?? CurrentUser.value;
     final name = user?.name.trim().isEmpty ?? true ? 'Student' : user!.name;
     final totalXp = user?.totalXp ?? 0;
@@ -214,9 +368,9 @@ class _ProfilePageState extends State<ProfilePage> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: c.card,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 12, offset: Offset(0, 8))],
+        boxShadow: [BoxShadow(color: c.shadow.withValues(alpha: 0.08), blurRadius: 12, offset: const Offset(0, 8))],
       ),
       child: Column(
         children: [
@@ -235,16 +389,23 @@ class _ProfilePageState extends State<ProfilePage> {
           const SizedBox(height: 14),
           Text(
             name,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.w800,
-              color: Color(0xFF1E2A3B),
+              color: c.textPrimary,
             ),
           ),
           const SizedBox(height: 6),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
+          GestureDetector(
+            onLongPress: () {
+              // Test streak celebration animation (long-press to preview)
+              StreakCelebrationOverlay.show();
+            },
+            child: Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 10,
+              runSpacing: 6,
+              children: [
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
@@ -267,18 +428,17 @@ class _ProfilePageState extends State<ProfilePage> {
                   ],
                 ),
               ),
-              const SizedBox(width: 10),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF1F5F9),
+                  color: c.surfaceVariant,
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
                   levelName,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF64748B),
+                    color: c.textSecondary,
                     fontSize: 13,
                   ),
                 ),
@@ -289,9 +449,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   final streak = globalUser?.profile?.currentStreak ??
                       _user?.profile?.currentStreak ?? 0;
                   if (streak <= 0) return const SizedBox.shrink();
-                  return Padding(
-                    padding: const EdgeInsets.only(left: 10),
-                    child: Container(
+                  return Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
                         color: const Color(0xFFFFF7ED),
@@ -306,17 +464,17 @@ class _ProfilePageState extends State<ProfilePage> {
                             '$streak day streak',
                             style: const TextStyle(
                               fontWeight: FontWeight.w700,
-                              color: Color(0xFF1E2A3B),
+                              color: Color(0xFF9A3412),
                               fontSize: 13,
                             ),
                           ),
                         ],
                       ),
-                    ),
                   );
                 },
               ),
             ],
+            ),
           ),
         ],
       ),
@@ -324,6 +482,7 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildLevelCard() {
+    final c = ZenoPayColors.of(context);
     final user = _user ?? CurrentUser.value;
     final totalXp = user?.totalXp ?? 0;
     final xpToNext = user?.xpToNextLevel ?? 0;
@@ -340,9 +499,9 @@ class _ProfilePageState extends State<ProfilePage> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: c.card,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 12, offset: Offset(0, 8))],
+        boxShadow: [BoxShadow(color: c.shadow.withValues(alpha: 0.08), blurRadius: 12, offset: const Offset(0, 8))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -365,21 +524,21 @@ class _ProfilePageState extends State<ProfilePage> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'Level progress',
                     style: TextStyle(
                       fontSize: 13,
-                      color: Color(0xFF64748B),
+                      color: c.textSecondary,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     levelName,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w800,
-                      color: Color(0xFF1E2A3B),
+                      color: c.textPrimary,
                     ),
                   ),
                 ],
@@ -392,8 +551,8 @@ class _ProfilePageState extends State<ProfilePage> {
             child: LinearProgressIndicator(
               value: progress,
               minHeight: 10,
-              backgroundColor: const Color(0xFFE2E8F0),
-              valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF4F6DFF)),
+            backgroundColor: c.progressBg,
+            valueColor: AlwaysStoppedAnimation<Color>(c.accent),
             ),
           ),
           const SizedBox(height: 10),
@@ -402,27 +561,27 @@ class _ProfilePageState extends State<ProfilePage> {
             children: [
               Text(
                 '$totalXp XP total',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
-                  color: Color(0xFF64748B),
+                  color: c.textSecondary,
                   fontWeight: FontWeight.w600,
                 ),
               ),
               if (xpToNext > 0)
                 Text(
                   '$xpToNext XP to next level',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
-                    color: Color(0xFF4F6DFF),
+                    color: c.accent,
                     fontWeight: FontWeight.w700,
                   ),
                 )
               else
-                const Text(
+                Text(
                   'Max level reached!',
                   style: TextStyle(
                     fontSize: 12,
-                    color: Color(0xFF10B981),
+                    color: c.success,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -434,19 +593,20 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildBadgesSection() {
+    final c = ZenoPayColors.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            const Icon(Icons.workspace_premium_rounded, color: Color(0xFF4F6DFF), size: 22),
+            Icon(Icons.workspace_premium_rounded, color: c.accent, size: 22),
             const SizedBox(width: 8),
-            const Text(
+            Text(
               'Badges earned',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w800,
-                color: Color(0xFF1E2A3B),
+                color: c.textPrimary,
               ),
             ),
             const SizedBox(width: 8),
@@ -472,31 +632,31 @@ class _ProfilePageState extends State<ProfilePage> {
           Container(
             padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: c.card,
               borderRadius: BorderRadius.circular(20),
-              boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 12, offset: Offset(0, 8))],
-              border: Border.all(color: const Color(0xFFE2E8F0)),
+              boxShadow: [BoxShadow(color: c.shadow.withValues(alpha: 0.08), blurRadius: 12, offset: const Offset(0, 8))],
+              border: Border.all(color: c.border),
             ),
             child: Column(
               children: [
                 Icon(
                   Icons.emoji_events_outlined,
                   size: 48,
-                  color: const Color(0xFF94A3B8).withValues(alpha: 0.7),
+                  color: c.textMuted.withValues(alpha: 0.7),
                 ),
                 const SizedBox(height: 12),
-                const Text(
+                Text(
                   'No badges yet',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF64748B),
+                    color: c.textSecondary,
                   ),
                 ),
                 const SizedBox(height: 4),
-                const Text(
+                Text(
                   'Complete challenges to earn badges',
-                  style: TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
+                  style: TextStyle(fontSize: 13, color: c.textMuted),
                 ),
               ],
             ),
@@ -521,13 +681,14 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildBadgeCard(ForYouAcceptedItem item) {
+    final c = ZenoPayColors.of(context);
     final color = _colorFromString(item.color) ?? const Color(0xFF6366F1);
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: c.card,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 12, offset: Offset(0, 8))],
+        boxShadow: [BoxShadow(color: c.shadow.withValues(alpha: 0.08), blurRadius: 12, offset: const Offset(0, 8))],
         border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Column(
@@ -553,10 +714,10 @@ class _ProfilePageState extends State<ProfilePage> {
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF1E2A3B),
+              color: c.textPrimary,
             ),
           ),
           const SizedBox(height: 6),

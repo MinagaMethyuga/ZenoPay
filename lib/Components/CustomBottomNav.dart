@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:zenopay/Components/add_transaction_page.dart';
+import 'package:zenopay/theme/zenopay_colors.dart';
 
 class CustomBottomNav extends StatefulWidget {
   final int currentIndex;
@@ -16,10 +17,6 @@ class CustomBottomNav extends StatefulWidget {
 class _CustomBottomNavState extends State<CustomBottomNav>
     with SingleTickerProviderStateMixin {
   late AnimationController _animController;
-
-  static const _accent = Color(0xFF4F6DFF);
-  static const _inactive = Color(0xFF94A3B8);
-  static const _surface = Color(0xFF1E293B);
 
   @override
   void initState() {
@@ -79,18 +76,19 @@ class _CustomBottomNavState extends State<CustomBottomNav>
 
   @override
   Widget build(BuildContext context) {
+    final c = ZenoPayColors.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       child: Container(
         constraints: const BoxConstraints(maxWidth: 400),
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
         decoration: BoxDecoration(
-          color: _surface,
+          color: c.navBar,
           borderRadius: BorderRadius.circular(28),
-          border: Border.all(color: const Color(0xFF334155).withValues(alpha: 0.5)),
+          border: Border.all(color: c.borderLight.withValues(alpha: 0.5)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.4),
+              color: c.shadow.withValues(alpha: 0.4),
               blurRadius: 24,
               offset: const Offset(0, 8),
             ),
@@ -99,23 +97,25 @@ class _CustomBottomNavState extends State<CustomBottomNav>
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            _buildNavItem(icon: Icons.home_rounded, label: 'Home', index: 0),
-            _buildNavItem(icon: Icons.emoji_events_rounded, label: 'Challenges', index: 1),
-            _buildNavItem(icon: Icons.add_rounded, label: 'Add', index: 2),
-            _buildNavItem(icon: Icons.account_balance_wallet_rounded, label: 'Budget', index: 3),
-            _buildNavItem(icon: Icons.leaderboard_rounded, label: 'Board', index: 4),
-            _buildNavItem(icon: Icons.person_rounded, label: 'Profile', index: 5),
+            _buildNavItem(context, icon: Icons.home_rounded, label: 'Home', index: 0),
+            _buildNavItem(context, icon: Icons.emoji_events_rounded, label: 'Challenges', index: 1),
+            _buildNavItem(context, icon: Icons.add_rounded, label: 'Add', index: 2),
+            _buildNavItem(context, icon: Icons.account_balance_wallet_rounded, label: 'Budget', index: 3),
+            _buildNavItem(context, icon: Icons.leaderboard_rounded, label: 'Board', index: 4),
+            _buildNavItem(context, icon: Icons.person_rounded, label: 'Profile', index: 5),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildNavItem({
+  Widget _buildNavItem(
+    BuildContext context, {
     required IconData icon,
     required String label,
     required int index,
   }) {
+    final c = ZenoPayColors.of(context);
     final isActive = widget.currentIndex == index;
 
     return Expanded(
@@ -124,8 +124,8 @@ class _CustomBottomNavState extends State<CustomBottomNav>
         child: InkWell(
           onTap: () => _onItemTapped(context, index),
           borderRadius: BorderRadius.circular(20),
-          splashColor: _accent.withValues(alpha: 0.2),
-          highlightColor: _accent.withValues(alpha: 0.08),
+          splashColor: c.accent.withValues(alpha: 0.2),
+          highlightColor: c.accent.withValues(alpha: 0.08),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             curve: Curves.easeOut,
@@ -139,14 +139,14 @@ class _CustomBottomNavState extends State<CustomBottomNav>
                   padding: EdgeInsets.all(isActive ? 6 : 0),
                   decoration: isActive
                       ? BoxDecoration(
-                          color: _accent.withValues(alpha: 0.2),
+                          color: c.accent.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(12),
                         )
                       : null,
                   child: Icon(
                     icon,
                     size: 24,
-                    color: isActive ? _accent : _inactive,
+                    color: isActive ? c.accent : c.textMuted,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -155,7 +155,7 @@ class _CustomBottomNavState extends State<CustomBottomNav>
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
-                    color: isActive ? _accent : _inactive,
+                    color: isActive ? c.accent : c.textMuted,
                   ),
                 ),
               ],

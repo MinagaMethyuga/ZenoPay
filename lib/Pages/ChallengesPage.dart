@@ -5,6 +5,7 @@ import 'package:zenopay/models/challenge_model.dart';
 import 'package:zenopay/models/user_model.dart';
 import 'package:zenopay/services/challenge_service.dart';
 import 'package:zenopay/state/current_user.dart';
+import 'package:zenopay/theme/zenopay_colors.dart';
 
 
 class ChallengesPage extends StatefulWidget {
@@ -68,15 +69,16 @@ class _ChallengesPageState extends State<ChallengesPage> {
 
   @override
   Widget build(BuildContext context) {
+    final c = ZenoPayColors.of(context);
     if (isLoading) {
-      return const Scaffold(
-        backgroundColor: Color(0xFFF8FAFC),
-        body: FullPageLoader(accentColor: Color(0xFF8B5CF6)),
+      return Scaffold(
+        backgroundColor: c.surface,
+        body: const FullPageLoader(accentColor: Color(0xFF8B5CF6)),
       );
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: c.surface,
       body: Stack(
         children: [
           SafeArea(
@@ -141,13 +143,14 @@ class _ChallengesPageState extends State<ChallengesPage> {
   }
 
   Widget _buildAppBar() {
+    final c = ZenoPayColors.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: c.card,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: c.shadow.withValues(alpha: 0.08),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -171,7 +174,7 @@ class _ChallengesPageState extends State<ChallengesPage> {
             ),
           ),
           const SizedBox(width: 12),
-          const Column(
+          Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
@@ -179,14 +182,14 @@ class _ChallengesPageState extends State<ChallengesPage> {
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF1E293B),
+                  color: c.textPrimary,
                 ),
               ),
               Text(
                 'Complete quests & earn rewards',
                 style: TextStyle(
                   fontSize: 13,
-                  color: Color(0xFF64748B),
+                  color: c.textSecondary,
                 ),
               ),
             ],
@@ -199,7 +202,7 @@ class _ChallengesPageState extends State<ChallengesPage> {
               return Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF1F5F9),
+                  color: c.surfaceVariant,
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Row(
@@ -212,10 +215,10 @@ class _ChallengesPageState extends State<ChallengesPage> {
                     const SizedBox(width: 4),
                     Text(
                       '$streak',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF1E293B),
+                        color: c.textPrimary,
                       ),
                     ),
                   ],
@@ -299,20 +302,21 @@ class _ChallengesPageState extends State<ChallengesPage> {
   }
 
   Widget _buildWelcomeMessage() {
+    final c = ZenoPayColors.of(context);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFF1F5F9),
+        color: c.surfaceVariant,
         borderRadius: BorderRadius.circular(16),
       ),
-      child: const Row(
+      child: Row(
         children: [
-          Icon(Icons.tips_and_updates_rounded, color: Color(0xFF6366F1)),
-          SizedBox(width: 12),
+          Icon(Icons.tips_and_updates_rounded, color: c.accent),
+          const SizedBox(width: 12),
           Expanded(
             child: Text(
               'Complete daily quests to maintain your streak and earn bonus rewards!',
-              style: TextStyle(color: Color(0xFF334155), fontSize: 14),
+              style: TextStyle(color: c.textPrimary, fontSize: 14),
             ),
           ),
         ],
@@ -321,15 +325,16 @@ class _ChallengesPageState extends State<ChallengesPage> {
   }
 
   Widget _buildDailyQuestsHeader() {
+    final c = ZenoPayColors.of(context);
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        const Text(
+        Text(
           'Daily Quests',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: Color(0xFF1E293B),
+            color: c.textPrimary,
           ),
         ),
         Container(
@@ -352,11 +357,12 @@ class _ChallengesPageState extends State<ChallengesPage> {
   }
 
   Widget _buildDailyQuestsList() {
+    final c = ZenoPayColors.of(context);
     if (dailyChallenges.isEmpty) {
-      return const Center(
+      return Center(
         child: Text(
           'No daily quests available right now.',
-          style: TextStyle(color: Color(0xFF64748B)),
+          style: TextStyle(color: c.textSecondary),
         ),
       );
     }
@@ -447,16 +453,17 @@ class _ChallengesPageState extends State<ChallengesPage> {
   }
 
   Widget _buildSectionHeader(String title, IconData icon) {
+    final c = ZenoPayColors.of(context);
     return Row(
       children: [
-        Icon(icon, size: 22, color: const Color(0xFF6366F1)),
+        Icon(icon, size: 22, color: c.accent),
         const SizedBox(width: 8),
         Text(
           title,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: Color(0xFF1E293B),
+            color: c.textPrimary,
           ),
         ),
       ],
@@ -464,18 +471,19 @@ class _ChallengesPageState extends State<ChallengesPage> {
   }
 
   Widget _buildAcceptedChallengesList() {
+    final c = ZenoPayColors.of(context);
     if (acceptedChallenges.isEmpty) {
       return Container(
         padding: const EdgeInsets.symmetric(vertical: 20),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: c.card,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
+          border: Border.all(color: c.border),
         ),
-        child: const Center(
+        child: Center(
           child: Text(
             'No accepted challenges yet. Accept one from below!',
-            style: TextStyle(color: Color(0xFF64748B), fontSize: 14),
+            style: TextStyle(color: c.textSecondary, fontSize: 14),
             textAlign: TextAlign.center,
           ),
         ),
@@ -493,18 +501,19 @@ class _ChallengesPageState extends State<ChallengesPage> {
   }
 
   Widget _buildAvailableChallengesList() {
+    final c = ZenoPayColors.of(context);
     if (availableChallenges.isEmpty) {
       return Container(
         padding: const EdgeInsets.symmetric(vertical: 20),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: c.card,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
+          border: Border.all(color: c.border),
         ),
-        child: const Center(
+        child: Center(
           child: Text(
             'No more challenges to accept. Great progress!',
-            style: TextStyle(color: Color(0xFF64748B), fontSize: 14),
+            style: TextStyle(color: c.textSecondary, fontSize: 14),
             textAlign: TextAlign.center,
           ),
         ),
@@ -522,20 +531,21 @@ class _ChallengesPageState extends State<ChallengesPage> {
   }
 
   Widget _buildAdaptiveChallengesSection() {
+    final c = ZenoPayColors.of(context);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFF1F5F9),
+        color: c.surfaceVariant,
         borderRadius: BorderRadius.circular(16),
       ),
-      child: const Row(
+      child: Row(
         children: [
-          Icon(Icons.auto_awesome_rounded, color: Color(0xFF8B5CF6)),
-          SizedBox(width: 12),
+          Icon(Icons.auto_awesome_rounded, color: c.accent),
+          const SizedBox(width: 12),
           Expanded(
             child: Text(
               'More adaptive challenges coming soon based on your spending patterns.',
-              style: TextStyle(color: Color(0xFF334155), fontSize: 14),
+              style: TextStyle(color: c.textPrimary, fontSize: 14),
             ),
           ),
         ],
@@ -544,6 +554,7 @@ class _ChallengesPageState extends State<ChallengesPage> {
   }
 
   Widget _buildForYouAcceptedCard(ForYouAcceptedItem item) {
+    final c = ZenoPayColors.of(context);
     final status = MyChallengeStatus(
       status: item.status,
       progress: item.progress,
@@ -552,11 +563,11 @@ class _ChallengesPageState extends State<ChallengesPage> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: c.card,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: c.shadow.withValues(alpha: 0.08),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -570,7 +581,7 @@ class _ChallengesPageState extends State<ChallengesPage> {
                 width: 54,
                 height: 54,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF1F5F9),
+                  color: c.surfaceVariant,
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Center(
@@ -587,10 +598,10 @@ class _ChallengesPageState extends State<ChallengesPage> {
                   children: [
                     Text(
                       item.title,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF1E293B),
+                        color: c.textPrimary,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -617,9 +628,9 @@ class _ChallengesPageState extends State<ChallengesPage> {
           const SizedBox(height: 12),
           Text(
             item.description,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
-              color: Color(0xFF64748B),
+              color: c.textSecondary,
             ),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
@@ -642,14 +653,15 @@ class _ChallengesPageState extends State<ChallengesPage> {
   }
 
   Widget _buildForYouAvailableCard(ForYouAvailableItem item) {
+    final c = ZenoPayColors.of(context);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: c.card,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: c.shadow.withValues(alpha: 0.08),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -663,7 +675,7 @@ class _ChallengesPageState extends State<ChallengesPage> {
                 width: 54,
                 height: 54,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF1F5F9),
+                  color: c.surfaceVariant,
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Center(
@@ -680,10 +692,10 @@ class _ChallengesPageState extends State<ChallengesPage> {
                   children: [
                     Text(
                       item.title,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF1E293B),
+                        color: c.textPrimary,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -710,9 +722,9 @@ class _ChallengesPageState extends State<ChallengesPage> {
           const SizedBox(height: 12),
           Text(
             item.description,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
-              color: Color(0xFF64748B),
+              color: c.textSecondary,
             ),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
@@ -772,8 +784,8 @@ class _ChallengesPageState extends State<ChallengesPage> {
       style: ElevatedButton.styleFrom(
         backgroundColor: const Color(0xFF6366F1),
         foregroundColor: Colors.white,
-        disabledBackgroundColor: const Color(0xFFE2E8F0),
-        disabledForegroundColor: const Color(0xFF64748B),
+        disabledBackgroundColor: ZenoPayColors.of(context).progressBg,
+        disabledForegroundColor: ZenoPayColors.of(context).textSecondary,
         padding: const EdgeInsets.symmetric(vertical: 9),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
@@ -791,6 +803,7 @@ class _ChallengesPageState extends State<ChallengesPage> {
   }
 
   Widget _buildProgressSection(MyChallengeStatus s) {
+    final c = ZenoPayColors.of(context);
     final target = s.targetValue;
     final hasTarget = target != null && target > 0;
     final fraction = hasTarget ? (s.progress / target).clamp(0.0, 1.0) : 0.0;
@@ -799,9 +812,9 @@ class _ChallengesPageState extends State<ChallengesPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
+        color: c.surfaceVariant,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
+        border: Border.all(color: c.border, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -829,10 +842,10 @@ class _ChallengesPageState extends State<ChallengesPage> {
               ),
               Text(
                 hasTarget ? '${s.progress} / $target' : '${s.progress}',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF64748B),
+                  color: c.textSecondary,
                 ),
               ),
             ],
@@ -844,7 +857,7 @@ class _ChallengesPageState extends State<ChallengesPage> {
               child: LinearProgressIndicator(
                 value: fraction,
                 minHeight: 6,
-                backgroundColor: const Color(0xFFE2E8F0),
+                backgroundColor: c.progressBg,
                 valueColor: AlwaysStoppedAnimation<Color>(
                   isCompleted ? const Color(0xFF10B981) : const Color(0xFF6366F1),
                 ),

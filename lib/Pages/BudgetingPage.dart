@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:zenopay/Components/CustomBottomNav.dart';
 import 'package:zenopay/Components/FullPageLoader.dart';
 import 'package:zenopay/core/config.dart';
+import 'package:zenopay/theme/zenopay_colors.dart';
 import 'package:zenopay/models/budget_model.dart';
 import 'package:zenopay/services/api_client.dart';
 import 'package:zenopay/services/budget_service.dart';
@@ -312,35 +313,36 @@ class _BudgetingPageState extends State<BudgetingPage> {
 
   @override
   Widget build(BuildContext context) {
+    final c = ZenoPayColors.of(context);
     if (_loading) {
-      return const Scaffold(
-        backgroundColor: Color(0xFFF8FAFC),
-        body: FullPageLoader(accentColor: Color(0xFF4F6DFF)),
+      return Scaffold(
+        backgroundColor: c.surface,
+        body: const FullPageLoader(accentColor: Color(0xFF4F6DFF)),
       );
     }
 
     final daysLeft = BudgetService.daysLeftInMonth;
-    final totalBudget = _budget.categories.fold<double>(0, (s, c) => s + c.monthlyLimit);
+    final totalBudget = _budget.categories.fold<double>(0, (s, cat) => s + cat.monthlyLimit);
     final totalSpent = _spentByCategory.values.fold<double>(0, (a, b) => a + b);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: c.surface,
       body: Stack(
         children: [
           SafeArea(
             child: RefreshIndicator(
               onRefresh: _load,
-              color: const Color(0xFF4F6DFF),
+              color: c.accent,
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.fromLTRB(20, 16, 20, 120),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    _buildHeader(),
+                    _buildHeader(context),
                     const SizedBox(height: 24),
                     if (_error != null)
-                      _buildError()
+                      _buildError(context)
                     else ...[
                       _buildIncomeCard(),
                       const SizedBox(height: 20),
@@ -365,7 +367,7 @@ class _BudgetingPageState extends State<BudgetingPage> {
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [const Color(0xFFF8FAFC).withValues(alpha: 0), const Color(0xFFF8FAFC)],
+                  colors: [c.surface.withValues(alpha: 0), c.surface],
                 ),
               ),
               child: CustomBottomNav(currentIndex: 3),
@@ -376,22 +378,23 @@ class _BudgetingPageState extends State<BudgetingPage> {
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(BuildContext context) {
+    final c = ZenoPayColors.of(context);
     return Row(
       children: [
         Container(
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: c.card,
             borderRadius: BorderRadius.circular(14),
-            boxShadow: const [
-              BoxShadow(color: Color(0x0D000000), blurRadius: 12, offset: Offset(0, 8)),
+            boxShadow: [
+              BoxShadow(color: c.shadow.withValues(alpha: 0.08), blurRadius: 12, offset: const Offset(0, 8)),
             ],
           ),
-          child: const Icon(Icons.account_balance_wallet_rounded, color: Color(0xFF4F6DFF), size: 28),
+          child: Icon(Icons.account_balance_wallet_rounded, color: c.accent, size: 28),
         ),
         const SizedBox(width: 14),
-        const Expanded(
+        Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -400,16 +403,16 @@ class _BudgetingPageState extends State<BudgetingPage> {
                 style: TextStyle(
                   fontSize: 26,
                   fontWeight: FontWeight.w800,
-                  color: Color(0xFF1E2A3B),
+                  color: c.textPrimary,
                   letterSpacing: -0.5,
                 ),
               ),
-              SizedBox(height: 2),
+              const SizedBox(height: 2),
               Text(
                 'Track spending & stay on target',
                 style: TextStyle(
                   fontSize: 13,
-                  color: Color(0xFF64748B),
+                  color: c.textSecondary,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -420,22 +423,23 @@ class _BudgetingPageState extends State<BudgetingPage> {
     );
   }
 
-  Widget _buildError() {
+  Widget _buildError(BuildContext context) {
+    final c = ZenoPayColors.of(context);
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: c.card,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 12, offset: Offset(0, 8))],
-        border: Border.all(color: Colors.red.withValues(alpha: 0.5)),
+        boxShadow: [BoxShadow(color: c.shadow.withValues(alpha: 0.08), blurRadius: 12, offset: const Offset(0, 8))],
+        border: Border.all(color: c.error.withValues(alpha: 0.5)),
       ),
       child: Column(
         children: [
-          const Icon(Icons.error_outline, color: Colors.red, size: 40),
+          Icon(Icons.error_outline, color: c.error, size: 40),
           const SizedBox(height: 12),
           Text(
             _error ?? 'Something went wrong',
-            style: const TextStyle(color: Color(0xFF64748B), fontSize: 13),
+            style: TextStyle(color: c.textSecondary, fontSize: 13),
             textAlign: TextAlign.center,
           ),
         ],
@@ -444,15 +448,16 @@ class _BudgetingPageState extends State<BudgetingPage> {
   }
 
   Widget _buildIncomeCard() {
+    final c = ZenoPayColors.of(context);
     return GestureDetector(
       onTap: _setIncome,
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: c.card,
           borderRadius: BorderRadius.circular(20),
-          boxShadow: const [
-            BoxShadow(color: Color(0x0D000000), blurRadius: 12, offset: Offset(0, 8)),
+          boxShadow: [
+            BoxShadow(color: c.shadow.withValues(alpha: 0.08), blurRadius: 12, offset: const Offset(0, 8)),
           ],
         ),
         child: Row(
@@ -460,21 +465,21 @@ class _BudgetingPageState extends State<BudgetingPage> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: const Color(0xFFF2F4FF),
+                color: c.accentMuted,
                 borderRadius: BorderRadius.circular(14),
               ),
-              child: const Icon(Icons.trending_up_rounded, color: Color(0xFF4F6DFF), size: 28),
+              child: Icon(Icons.trending_up_rounded, color: c.accent, size: 28),
             ),
             const SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'Monthly income',
                     style: TextStyle(
                       fontSize: 13,
-                      color: Color(0xFF64748B),
+                      color: c.textSecondary,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -486,13 +491,13 @@ class _BudgetingPageState extends State<BudgetingPage> {
                     style: TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.w800,
-                      color: _budget.monthlyIncome > 0 ? const Color(0xFF1E2A3B) : const Color(0xFF64748B),
+                      color: _budget.monthlyIncome > 0 ? c.textPrimary : c.textSecondary,
                     ),
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.edit_rounded, color: Color(0xFF64748B), size: 22),
+            Icon(Icons.edit_rounded, color: c.textSecondary, size: 22),
           ],
         ),
       ),
@@ -500,13 +505,14 @@ class _BudgetingPageState extends State<BudgetingPage> {
   }
 
   Widget _buildOverviewCard(double totalBudget, double totalSpent, int daysLeft) {
+    final c = ZenoPayColors.of(context);
     final left = totalBudget - totalSpent;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: c.card,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 12, offset: Offset(0, 8))],
+        boxShadow: [BoxShadow(color: c.shadow.withValues(alpha: 0.08), blurRadius: 12, offset: const Offset(0, 8))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -514,23 +520,23 @@ class _BudgetingPageState extends State<BudgetingPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'This month',
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF64748B),
+                  color: c.textSecondary,
                 ),
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF1F5F9),
+                  color: c.surfaceVariant,
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
                   '$daysLeft days left',
-                  style: const TextStyle(fontSize: 12, color: Color(0xFF1E2A3B), fontWeight: FontWeight.w600),
+                  style: TextStyle(fontSize: 12, color: c.textPrimary, fontWeight: FontWeight.w600),
                 ),
               ),
             ],
@@ -561,6 +567,7 @@ class _BudgetingPageState extends State<BudgetingPage> {
   }
 
   Widget _overviewChip(String label, double value, Color color) {
+    final c = ZenoPayColors.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
       decoration: BoxDecoration(
@@ -578,7 +585,7 @@ class _BudgetingPageState extends State<BudgetingPage> {
           const SizedBox(height: 4),
           Text(
             'Rs ${value.toStringAsFixed(0)}',
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF1E2A3B)),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: c.textPrimary),
           ),
         ],
       ),
@@ -586,29 +593,30 @@ class _BudgetingPageState extends State<BudgetingPage> {
   }
 
   Widget _buildCategoryBudgets(int daysLeft) {
+    final c = ZenoPayColors.of(context);
     if (_budget.categories.isEmpty) {
       return GestureDetector(
         onTap: _addCategoryBudget,
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: c.card,
             borderRadius: BorderRadius.circular(20),
-            boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 12, offset: Offset(0, 8))],
-            border: Border.all(color: const Color(0xFFE2E8F0)),
+            boxShadow: [BoxShadow(color: c.shadow.withValues(alpha: 0.08), blurRadius: 12, offset: const Offset(0, 8))],
+            border: Border.all(color: c.border),
           ),
           child: Column(
             children: [
-              Icon(Icons.add_chart_rounded, size: 44, color: const Color(0xFF64748B).withValues(alpha: 0.8)),
+              Icon(Icons.add_chart_rounded, size: 44, color: c.textSecondary.withValues(alpha: 0.8)),
               const SizedBox(height: 12),
-              const Text(
+              Text(
                 'Add a category budget',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Color(0xFF64748B)),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: c.textSecondary),
               ),
               const SizedBox(height: 4),
-              const Text(
+              Text(
                 'e.g. Food Rs 2000/month',
-                style: TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
+                style: TextStyle(fontSize: 13, color: c.textMuted),
               ),
             ],
           ),
@@ -622,18 +630,18 @@ class _BudgetingPageState extends State<BudgetingPage> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
+            Text(
               'Category budgets',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w800,
-                color: Color(0xFF1E2A3B),
+                color: c.textPrimary,
               ),
             ),
             TextButton.icon(
               onPressed: _addCategoryBudget,
-              icon: const Icon(Icons.add_rounded, size: 20, color: Color(0xFF4F6DFF)),
-              label: const Text('Add', style: TextStyle(color: Color(0xFF4F6DFF), fontWeight: FontWeight.w700)),
+              icon: Icon(Icons.add_rounded, size: 20, color: c.accent),
+              label: Text('Add', style: TextStyle(color: c.accent, fontWeight: FontWeight.w700)),
             ),
           ],
         ),
@@ -644,7 +652,8 @@ class _BudgetingPageState extends State<BudgetingPage> {
   }
 
   Widget _buildCategoryCard(BudgetCategory cat, int daysLeft) {
-    final spent = _spentByCategory[cat.categoryName] ?? 0;
+    final c = ZenoPayColors.of(context);
+    final spent = BudgetService.spentForBudgetCategory(_spentByCategory, cat.categoryName);
     final left = cat.monthlyLimit - spent;
     final daily = daysLeft > 0 ? (left > 0 ? left / daysLeft : 0.0) : 0.0;
     final progress = cat.monthlyLimit > 0 ? (spent / cat.monthlyLimit).clamp(0.0, 1.0) : 0.0;
@@ -654,11 +663,11 @@ class _BudgetingPageState extends State<BudgetingPage> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: c.card,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 12, offset: Offset(0, 8))],
+        boxShadow: [BoxShadow(color: c.shadow.withValues(alpha: 0.08), blurRadius: 12, offset: const Offset(0, 8))],
         border: Border.all(
-          color: isOver ? Colors.red.withValues(alpha: 0.4) : const Color(0xFFE2E8F0),
+          color: isOver ? c.error.withValues(alpha: 0.4) : c.border,
         ),
       ),
       child: Column(
@@ -668,10 +677,10 @@ class _BudgetingPageState extends State<BudgetingPage> {
             children: [
               CircleAvatar(
                 radius: 20,
-                backgroundColor: const Color(0xFFF2F4FF),
+                backgroundColor: c.accentMuted,
                 child: Icon(
                   _iconForCategory(cat.categoryName),
-                  color: const Color(0xFF4F6DFF),
+                  color: c.accent,
                   size: 22,
                 ),
               ),
@@ -682,17 +691,17 @@ class _BudgetingPageState extends State<BudgetingPage> {
                   children: [
                     Text(
                       cat.categoryName,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w800,
-                        color: Color(0xFF1E2A3B),
+                        color: c.textPrimary,
                       ),
                     ),
                     Text(
                       'Rs ${spent.toStringAsFixed(0)} / Rs ${cat.monthlyLimit.toStringAsFixed(0)}',
                       style: TextStyle(
                         fontSize: 12,
-                        color: isOver ? const Color(0xFFEF4444) : const Color(0xFF64748B),
+                        color: isOver ? c.error : c.textSecondary,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -700,11 +709,11 @@ class _BudgetingPageState extends State<BudgetingPage> {
                 ),
               ),
               PopupMenuButton<String>(
-                icon: const Icon(Icons.more_vert, color: Color(0xFF64748B)),
-                color: Colors.white,
+                icon: Icon(Icons.more_vert, color: c.textSecondary),
+                color: c.card,
                 itemBuilder: (ctx) => [
-                  const PopupMenuItem(value: 'edit', child: Text('Edit', style: TextStyle(color: Color(0xFF1E2A3B)))),
-                  const PopupMenuItem(value: 'delete', child: Text('Remove', style: TextStyle(color: Color(0xFFEF4444)))),
+                  PopupMenuItem(value: 'edit', child: Text('Edit', style: TextStyle(color: c.textPrimary))),
+                  PopupMenuItem(value: 'delete', child: Text('Remove', style: TextStyle(color: c.error))),
                 ],
                 onSelected: (v) {
                   if (v == 'edit') _editCategoryBudget(cat);
@@ -719,9 +728,9 @@ class _BudgetingPageState extends State<BudgetingPage> {
             child: LinearProgressIndicator(
               value: progress,
               minHeight: 8,
-              backgroundColor: const Color(0xFFE2E8F0),
+              backgroundColor: c.progressBg,
               valueColor: AlwaysStoppedAnimation<Color>(
-                isOver ? const Color(0xFFEF4444) : const Color(0xFF4F6DFF),
+                isOver ? c.error : c.accent,
               ),
             ),
           ),
@@ -734,12 +743,12 @@ class _BudgetingPageState extends State<BudgetingPage> {
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
-                  color: left >= 0 ? const Color(0xFF00C27A) : const Color(0xFFEF4444),
+                  color: left >= 0 ? c.success : c.error,
                 ),
               ),
               Text(
                 daysLeft > 0 ? 'Rs ${daily.toStringAsFixed(0)}/day to stay on track' : 'Month ended',
-                style: const TextStyle(fontSize: 12, color: Color(0xFF64748B), fontWeight: FontWeight.w500),
+                style: TextStyle(fontSize: 12, color: c.textSecondary, fontWeight: FontWeight.w500),
               ),
             ],
           ),
@@ -764,7 +773,8 @@ class _BudgetingPageState extends State<BudgetingPage> {
   }
 
   Widget _buildDailyTip(int daysLeft) {
-    final totalBudget = _budget.categories.fold<double>(0, (s, c) => s + c.monthlyLimit);
+    final c = ZenoPayColors.of(context);
+    final totalBudget = _budget.categories.fold<double>(0, (s, cat) => s + cat.monthlyLimit);
     final totalSpent = _spentByCategory.values.fold<double>(0, (a, b) => a + b);
     final left = totalBudget - totalSpent;
     final daily = daysLeft > 0 && left > 0 ? left / daysLeft : 0.0;
@@ -772,32 +782,32 @@ class _BudgetingPageState extends State<BudgetingPage> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: c.card,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 12, offset: Offset(0, 8))],
-        border: Border.all(color: const Color(0xFF4F6DFF).withValues(alpha: 0.25)),
+        boxShadow: [BoxShadow(color: c.shadow.withValues(alpha: 0.08), blurRadius: 12, offset: const Offset(0, 8))],
+        border: Border.all(color: c.accent.withValues(alpha: 0.25)),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: const Color(0xFFF2F4FF),
+              color: c.accentMuted,
               borderRadius: BorderRadius.circular(14),
             ),
-            child: const Icon(Icons.lightbulb_rounded, color: Color(0xFF4F6DFF), size: 28),
+            child: Icon(Icons.lightbulb_rounded, color: c.accent, size: 28),
           ),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Daily budget tip',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w800,
-                    color: Color(0xFF1E2A3B),
+                    color: c.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 6),
@@ -807,7 +817,7 @@ class _BudgetingPageState extends State<BudgetingPage> {
                       : left <= 0
                           ? 'You\'ve used your budget for this month. Try to avoid extra spending until next month.'
                           : 'Set your income and category budgets to see your daily allowance.',
-                  style: const TextStyle(fontSize: 13, color: Color(0xFF64748B), height: 1.35),
+                  style: TextStyle(fontSize: 13, color: c.textSecondary, height: 1.35),
                 ),
               ],
             ),
