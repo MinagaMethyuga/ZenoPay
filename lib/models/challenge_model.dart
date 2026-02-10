@@ -310,3 +310,27 @@ class ChallengesForYouResponse {
     );
   }
 }
+
+/// GET /api/challenges/recommended response (tier, topCategory, recommended list).
+class RecommendedChallengesResponse {
+  final String tier;
+  final String topCategory;
+  final List<ForYouAvailableItem> recommended;
+
+  RecommendedChallengesResponse({
+    required this.tier,
+    required this.topCategory,
+    required this.recommended,
+  });
+
+  factory RecommendedChallengesResponse.fromJson(Map<String, dynamic> json) {
+    final recommendedList = json['recommended'] as List<dynamic>? ?? [];
+    return RecommendedChallengesResponse(
+      tier: json['tier'] as String? ?? '',
+      topCategory: json['top_category'] as String? ?? '',
+      recommended: recommendedList
+          .map((e) => ForYouAvailableItem.fromJson(Map<String, dynamic>.from(e as Map)))
+          .toList(),
+    );
+  }
+}

@@ -10,6 +10,7 @@ import "package:zenopay/state/current_user.dart";
 import "package:zenopay/services/budget_service.dart";
 import "package:zenopay/services/budget_notification_service.dart";
 import "package:zenopay/theme/zenopay_colors.dart";
+import "package:zenopay/Components/XpGainOverlay.dart";
 
 // -------------------- Models --------------------
 
@@ -738,7 +739,7 @@ class _AddTransactionPageState extends State<AddTransactionPage> with TickerProv
 
       if (!mounted) return;
       HapticFeedback.lightImpact();
-      _toast("Saved • +5 XP");
+      XpGainOverlay.show(xp: 5);
       Navigator.pop(context, true);
     } catch (e) {
       _toast("Save failed: $e");

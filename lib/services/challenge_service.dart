@@ -1,8 +1,11 @@
+import "package:flutter/foundation.dart";
 import "package:zenopay/core/config.dart";
 import "package:zenopay/services/api_client.dart";
 import "package:zenopay/models/challenge_model.dart";
 
 class ChallengeService {
+  /// Set to true to test the Recommended UI without the backend (debug only).
+  static const bool useRecommendedMock = false;
   String? _toAbsoluteUrl(String? url) {
     if (url == null || url.isEmpty) return null;
     if (url.startsWith("http://") || url.startsWith("https://")) return url;
@@ -78,6 +81,50 @@ class ChallengeService {
     final res = await dio.get("/challenges/for-you");
     final data = res.data is Map ? res.data as Map<String, dynamic> : <String, dynamic>{};
     return ChallengesForYouResponse.fromJson(data);
+  }
+
+  /// GET /api/challenges/recommended — tier, topCategory, recommended list.
+  Future<RecommendedChallengesResponse> fetchRecommendedChallenges() async {
+    if (kDebugMode && useRecommendedMock) {
+      return _mockRecommendedChallenges();
+    }
+    final dio = await ApiClient.instance(AppConfig.apiBaseUrl);
+    final res = await dio.get("/challenges/recommended");
+    final data = res.data is Map ? res.data as Map<String, dynamic> : <String, dynamic>{};
+    return RecommendedChallengesResponse.fromJson(data);
+  }
+
+  /// Mock data for testing Recommended UI when backend is not ready.
+  static Future<RecommendedChallengesResponse> _mockRecommendedChallenges() async {
+    await Future.delayed(const Duration(milliseconds: 400)); // simulate network
+    return RecommendedChallengesResponse(
+      tier: 'explorer',
+      topCategory: 'Savings',
+      recommended: [
+        ForYouAvailableItem(
+          id: 9001,
+          title: 'Save your first \$50',
+          description: 'Set aside \$50 this week and track it in Savings.',
+          type: 'regular',
+          target: 50,
+          rewardPoints: 25,
+          icon: '💰',
+          color: null,
+          frequency: 'once',
+        ),
+        ForYouAvailableItem(
+          id: 9002,
+          title: 'Log 3 transactions',
+          description: 'Record 3 spending or income transactions.',
+          type: 'regular',
+          target: 3,
+          rewardPoints: 15,
+          icon: '📝',
+          color: null,
+          frequency: 'daily',
+        ),
+      ],
+    );
   }
 
   // ✅ Accept a quest: POST /api/challenges/{id}/accept

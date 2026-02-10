@@ -25,6 +25,11 @@ class _ChallengesPageState extends State<ChallengesPage> {
   bool isLoading = true;
   int totalXP = 0;
 
+  /// From GET /api/challenges/recommended (empty when endpoint fails)
+  String recommendedTier = '';
+  String recommendedTopCategory = '';
+  List<ForYouAvailableItem> recommendedChallenges = [];
+
   @override
   void initState() {
     super.initState();
@@ -40,6 +45,25 @@ class _ChallengesPageState extends State<ChallengesPage> {
           .where((c) => c.status == 'completed')
           .map((c) => c.id)
           .toSet();
+
+      // Try recommended endpoint first; on failure fallback to for-you only
+      try {
+        final rec = await _challengeService.fetchRecommendedChallenges();
+        if (!mounted) return;
+        setState(() {
+          recommendedTier = rec.tier;
+          recommendedTopCategory = rec.topCategory;
+          recommendedChallenges = rec.recommended;
+        });
+      } catch (e) {
+        debugPrint('Recommended challenges failed, using catalog: $e');
+        if (!mounted) return;
+        setState(() {
+          recommendedTier = '';
+          recommendedTopCategory = '';
+          recommendedChallenges = [];
+        });
+      }
 
       final response = await _challengeService.getChallengesForYou();
 
@@ -102,6 +126,17 @@ class _ChallengesPageState extends State<ChallengesPage> {
                             _buildDailyQuestsHeader(),
                             const SizedBox(height: 16),
                             _buildDailyQuestsList(),
+                            if (recommendedChallenges.isNotEmpty) ...[
+                              const SizedBox(height: 24),
+                              _buildSectionHeader(
+                                recommendedTopCategory.isNotEmpty
+                                    ? 'Recommended for you · $recommendedTopCategory'
+                                    : 'Recommended for you',
+                                Icons.auto_awesome_rounded,
+                              ),
+                              const SizedBox(height: 12),
+                              _buildRecommendedChallengesList(),
+                            ],
                             const SizedBox(height: 24),
                             _buildSectionHeader('Your challenges', Icons.emoji_events_rounded),
                             const SizedBox(height: 12),
@@ -495,6 +530,17 @@ class _ChallengesPageState extends State<ChallengesPage> {
         return Padding(
           padding: const EdgeInsets.only(bottom: 12),
           child: _buildForYouAcceptedCard(item),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildRecommendedChallengesList() {
+    return Column(
+      children: recommendedChallenges.map((item) {
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: _buildForYouAvailableCard(item),
         );
       }).toList(),
     );
