@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:zenopay/Components/CustomBottomNav.dart';
+import 'package:zenopay/Components/FullPageLoader.dart';
 import 'package:zenopay/models/challenge_model.dart';
 import 'package:zenopay/services/challenge_service.dart';
 import 'package:zenopay/state/current_user.dart';
@@ -67,6 +68,13 @@ class _ChallengesPageState extends State<ChallengesPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (isLoading) {
+      return const Scaffold(
+        backgroundColor: Color(0xFFF8FAFC),
+        body: FullPageLoader(accentColor: Color(0xFF8B5CF6)),
+      );
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       body: Stack(
@@ -76,13 +84,7 @@ class _ChallengesPageState extends State<ChallengesPage> {
               children: [
                 _buildAppBar(),
                 Expanded(
-                  child: isLoading
-                      ? const Center(
-                    child: CircularProgressIndicator(
-                      color: Color(0xFF8B5CF6),
-                    ),
-                  )
-                      : RefreshIndicator(
+                  child: RefreshIndicator(
                     onRefresh: _loadChallenges,
                     child: SingleChildScrollView(
                       padding: const EdgeInsets.only(bottom: 100),

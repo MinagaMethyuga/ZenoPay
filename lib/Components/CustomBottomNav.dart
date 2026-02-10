@@ -15,13 +15,17 @@ class CustomBottomNav extends StatefulWidget {
 
 class _CustomBottomNavState extends State<CustomBottomNav>
     with SingleTickerProviderStateMixin {
-  late AnimationController _animationController;
+  late AnimationController _animController;
+
+  static const _accent = Color(0xFF4F6DFF);
+  static const _inactive = Color(0xFF94A3B8);
+  static const _surface = Color(0xFF1E293B);
 
   @override
   void initState() {
     super.initState();
-    _animationController = AnimationController(
-      duration: const Duration(milliseconds: 300),
+    _animController = AnimationController(
+      duration: const Duration(milliseconds: 250),
       vsync: this,
     );
   }
@@ -30,18 +34,18 @@ class _CustomBottomNavState extends State<CustomBottomNav>
   void didUpdateWidget(CustomBottomNav oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.currentIndex != widget.currentIndex) {
-      _animationController.forward(from: 0);
+      _animController.forward(from: 0).then((_) => _animController.reset());
     }
   }
 
   @override
   void dispose() {
-    _animationController.dispose();
+    _animController.dispose();
     super.dispose();
   }
 
   void _onItemTapped(BuildContext context, int index) {
-    if (widget.currentIndex == index) return; // Don't navigate if already on this page
+    if (widget.currentIndex == index) return;
 
     switch (index) {
       case 0:
@@ -51,13 +55,12 @@ class _CustomBottomNavState extends State<CustomBottomNav>
         Navigator.pushReplacementNamed(context, '/ZenoChallenge');
         break;
       case 2:
-      // Center add button - Navigate to AddTransactionPage
         Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) => const AddTransactionPage(
               type: 'expense',
-              userId: 1, // You can pass the actual user ID here
+              userId: 1,
             ),
           ),
         );
@@ -76,82 +79,32 @@ class _CustomBottomNavState extends State<CustomBottomNav>
 
   @override
   Widget build(BuildContext context) {
-    return Center(
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       child: Container(
-        width: MediaQuery.of(context).size.width * 0.9,
-        constraints: const BoxConstraints(maxWidth: 360),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        constraints: const BoxConstraints(maxWidth: 400),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
         decoration: BoxDecoration(
-          color: const Color(0xFF1E293B),
-          borderRadius: BorderRadius.circular(32),
+          color: _surface,
+          borderRadius: BorderRadius.circular(28),
           border: Border.all(color: const Color(0xFF334155).withValues(alpha: 0.5)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.5),
-              blurRadius: 40,
-              offset: const Offset(0, 10),
+              color: Colors.black.withValues(alpha: 0.4),
+              blurRadius: 24,
+              offset: const Offset(0, 8),
             ),
           ],
         ),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            _buildNavItem(
-              icon: Icons.grid_view,
-              label: 'Home',
-              index: 0,
-            ),
-            _buildNavItem(
-              icon: Icons.flag,
-              label: 'Challenges',
-              index: 1,
-            ),
-            Transform.translate(
-              offset: const Offset(0, -24),
-              child: GestureDetector(
-                onTap: () => _onItemTapped(context, 2),
-                child: AnimatedScale(
-                  scale: widget.currentIndex == 2 ? 1.1 : 1.0,
-                  duration: const Duration(milliseconds: 200),
-                  child: Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF34D399), Color(0xFF14B8A6)],
-                      ),
-                      shape: BoxShape.circle,
-                      border: Border.all(color: const Color(0xFFF8FAFC), width: 5),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFF10B981).withValues(alpha: 0.4),
-                          blurRadius: 20,
-                        ),
-                      ],
-                    ),
-                    child: const Icon(
-                      Icons.add,
-                      color: Colors.white,
-                      size: 28,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            _buildNavItem(
-              icon: Icons.account_balance_wallet_rounded,
-              label: 'Budget',
-              index: 3,
-            ),
-            _buildNavItem(
-              icon: Icons.bar_chart,
-              label: 'Leaderboard',
-              index: 4,
-            ),
-            _buildNavItem(
-              icon: Icons.person,
-              label: 'Profile',
-              index: 5,
-            ),
+            _buildNavItem(icon: Icons.home_rounded, label: 'Home', index: 0),
+            _buildNavItem(icon: Icons.emoji_events_rounded, label: 'Challenges', index: 1),
+            _buildNavItem(icon: Icons.add_rounded, label: 'Add', index: 2),
+            _buildNavItem(icon: Icons.account_balance_wallet_rounded, label: 'Budget', index: 3),
+            _buildNavItem(icon: Icons.leaderboard_rounded, label: 'Board', index: 4),
+            _buildNavItem(icon: Icons.person_rounded, label: 'Profile', index: 5),
           ],
         ),
       ),
@@ -165,57 +118,52 @@ class _CustomBottomNavState extends State<CustomBottomNav>
   }) {
     final isActive = widget.currentIndex == index;
 
-    return GestureDetector(
-      onTap: () => _onItemTapped(context, index),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            AnimatedScale(
-              scale: isActive ? 1.15 : 1.0,
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeInOut,
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  boxShadow: isActive
-                      ? [
-                          BoxShadow(
-                            color: const Color(0xFF3B82F6).withValues(alpha: 0.6),
-                            blurRadius: 12,
-                            spreadRadius: 2,
-                          ),
-                        ]
+    return Expanded(
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _onItemTapped(context, index),
+          borderRadius: BorderRadius.circular(20),
+          splashColor: _accent.withValues(alpha: 0.2),
+          highlightColor: _accent.withValues(alpha: 0.08),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOut,
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: EdgeInsets.all(isActive ? 6 : 0),
+                  decoration: isActive
+                      ? BoxDecoration(
+                          color: _accent.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(12),
+                        )
                       : null,
+                  child: Icon(
+                    icon,
+                    size: 24,
+                    color: isActive ? _accent : _inactive,
+                  ),
                 ),
-                child: Icon(
-                  icon,
-                  color: isActive
-                      ? const Color(0xFF3B82F6)
-                      : const Color(0xFF94A3B8),
-                  size: 26,
+                const SizedBox(height: 4),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                    color: isActive ? _accent : _inactive,
+                  ),
                 ),
-              ),
+              ],
             ),
-            const SizedBox(height: 4),
-            AnimatedDefaultTextStyle(
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeInOut,
-              style: TextStyle(
-                fontSize: isActive ? 9.5 : 8.5,
-                fontWeight: isActive ? FontWeight.bold : FontWeight.w600,
-                color: isActive
-                    ? const Color(0xFF3B82F6)
-                    : const Color(0xFF94A3B8),
-              ),
-              child: Text(label),
-            ),
-          ],
+          ),
         ),
       ),
     );
   }
+
 }

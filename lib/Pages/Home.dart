@@ -1,6 +1,7 @@
 import "package:flutter/material.dart";
 
 import "package:zenopay/Components/CustomBottomNav.dart";
+import "package:zenopay/Components/FullPageLoader.dart";
 import "package:zenopay/Components/add_transaction_page.dart" hide IconRegistry;
 
 import "package:zenopay/core/config.dart";
@@ -233,6 +234,13 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
     final income = totalIncome;
     final expense = totalExpense;
     final bal = balance;
+
+    if (loading) {
+      return const Scaffold(
+        backgroundColor: Color(0xFFF8FAFC),
+        body: FullPageLoader(accentColor: Color(0xFF4F6DFF)),
+      );
+    }
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
@@ -750,13 +758,6 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
   }
 
   Widget _recentTransactionsList() {
-    if (loading) {
-      return const Center(
-          child: Padding(
-              padding: EdgeInsets.all(16),
-              child: CircularProgressIndicator()));
-    }
-
     if (transactions.isEmpty) {
       return Container(
         padding: const EdgeInsets.all(18),

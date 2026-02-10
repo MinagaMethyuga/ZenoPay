@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:zenopay/Components/CustomBottomNav.dart';
+import 'package:zenopay/Components/FullPageLoader.dart';
 import 'package:zenopay/core/config.dart';
 import 'package:zenopay/models/budget_model.dart';
 import 'package:zenopay/services/api_client.dart';
@@ -311,6 +312,13 @@ class _BudgetingPageState extends State<BudgetingPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (_loading) {
+      return const Scaffold(
+        backgroundColor: Color(0xFFF8FAFC),
+        body: FullPageLoader(accentColor: Color(0xFF4F6DFF)),
+      );
+    }
+
     final daysLeft = BudgetService.daysLeftInMonth;
     final totalBudget = _budget.categories.fold<double>(0, (s, c) => s + c.monthlyLimit);
     final totalSpent = _spentByCategory.values.fold<double>(0, (a, b) => a + b);
@@ -331,14 +339,7 @@ class _BudgetingPageState extends State<BudgetingPage> {
                   children: [
                     _buildHeader(),
                     const SizedBox(height: 24),
-                    if (_loading)
-                      const Center(
-                        child: Padding(
-                          padding: EdgeInsets.all(32),
-                          child: CircularProgressIndicator(color: Color(0xFF4F6DFF)),
-                        ),
-                      )
-                    else if (_error != null)
+                    if (_error != null)
                       _buildError()
                     else ...[
                       _buildIncomeCard(),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:zenopay/Pages/BudgetingPage.dart';
 import 'package:zenopay/Pages/ChallengesPage.dart';
 import 'package:zenopay/Pages/Leaderboards.dart';
+import 'package:zenopay/Pages/ProfilePage.dart';
 import 'package:zenopay/services/auth_api.dart';
 
 import 'Pages/Login.dart';
@@ -52,14 +53,62 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       title: 'ZenoPay',
       debugShowCheckedModeBanner: false,
       initialRoute: '/login',
-      routes: {
-        '/home': (context) => const Home(),
-        '/login': (context) => const Login(),
-        '/register': (context) => const Register(),
-        '/onboarding': (context) => const OnboardingJourney(),
-        '/ZenoChallenge': (context) => const ChallengesPage(),
-        '/Budgeting': (context) => const BudgetingPage(),
-        '/Leaderboards': (context) => const Leaderboards(),
+      onGenerateRoute: (settings) {
+        Widget page;
+        switch (settings.name) {
+          case '/home':
+            page = const Home();
+            break;
+          case '/login':
+            page = const Login();
+            break;
+          case '/register':
+            page = const Register();
+            break;
+          case '/onboarding':
+            page = const OnboardingJourney();
+            break;
+          case '/ZenoChallenge':
+            page = const ChallengesPage();
+            break;
+          case '/Budgeting':
+            page = const BudgetingPage();
+            break;
+          case '/Leaderboards':
+            page = const Leaderboards();
+            break;
+          case '/profile':
+            page = const ProfilePage();
+            break;
+          default:
+            page = const Login();
+        }
+
+        return PageRouteBuilder(
+          settings: settings,
+          pageBuilder: (context, animation, secondaryAnimation) => page,
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            const begin = Offset(0.05, 0);
+            const end = Offset.zero;
+            const curve = Curves.easeOutCubic;
+            var tween = Tween(begin: begin, end: end).chain(
+              CurveTween(curve: curve),
+            );
+            var offsetAnimation = animation.drive(tween);
+            var fadeAnimation = CurvedAnimation(
+              parent: animation,
+              curve: Curves.easeOut,
+            );
+            return SlideTransition(
+              position: offsetAnimation,
+              child: FadeTransition(
+                opacity: fadeAnimation,
+                child: child,
+              ),
+            );
+          },
+          transitionDuration: const Duration(milliseconds: 280),
+        );
       },
     );
   }
