@@ -196,3 +196,117 @@ class UserChallengeItem {
     );
   }
 }
+
+// --- GET /api/challenges/for-you response ---
+
+/// One accepted challenge from for-you (has progress and status).
+class ForYouAcceptedItem {
+  final int id;
+  final String title;
+  final String description;
+  final String type;
+  final num? target;
+  final int rewardPoints;
+  final String? icon;
+  final String? color;
+  final String frequency;
+  final String status; // 'accepted' | 'completed'
+  final int progress;
+  final DateTime? acceptedAt;
+  final DateTime? completedAt;
+
+  ForYouAcceptedItem({
+    required this.id,
+    required this.title,
+    required this.description,
+    required this.type,
+    this.target,
+    required this.rewardPoints,
+    this.icon,
+    this.color,
+    required this.frequency,
+    required this.status,
+    required this.progress,
+    this.acceptedAt,
+    this.completedAt,
+  });
+
+  static ForYouAcceptedItem fromJson(Map<String, dynamic> json) {
+    return ForYouAcceptedItem(
+      id: json['id'] as int,
+      title: json['title'] as String? ?? '',
+      description: json['description'] as String? ?? '',
+      type: json['type'] as String? ?? 'regular',
+      target: _forYouParseNum(json['target']),
+      rewardPoints: (json['reward_points'] is int) ? json['reward_points'] as int : int.tryParse(json['reward_points']?.toString() ?? '0') ?? 0,
+      icon: json['icon'] as String?,
+      color: json['color'] as String?,
+      frequency: json['frequency'] as String? ?? 'once',
+      status: json['status'] as String? ?? 'accepted',
+      progress: (json['progress'] is int) ? json['progress'] as int : int.tryParse(json['progress']?.toString() ?? '0') ?? 0,
+      acceptedAt: json['accepted_at'] != null ? DateTime.tryParse(json['accepted_at'].toString()) : null,
+      completedAt: json['completed_at'] != null ? DateTime.tryParse(json['completed_at'].toString()) : null,
+    );
+  }
+}
+
+num? _forYouParseNum(dynamic v) {
+  if (v == null) return null;
+  if (v is num) return v;
+  return num.tryParse(v.toString());
+}
+
+/// One available challenge from for-you (no progress/status).
+class ForYouAvailableItem {
+  final int id;
+  final String title;
+  final String description;
+  final String type;
+  final num? target;
+  final int rewardPoints;
+  final String? icon;
+  final String? color;
+  final String frequency;
+
+  ForYouAvailableItem({
+    required this.id,
+    required this.title,
+    required this.description,
+    required this.type,
+    this.target,
+    required this.rewardPoints,
+    this.icon,
+    this.color,
+    required this.frequency,
+  });
+
+  static ForYouAvailableItem fromJson(Map<String, dynamic> json) {
+    return ForYouAvailableItem(
+      id: json['id'] as int,
+      title: json['title'] as String? ?? '',
+      description: json['description'] as String? ?? '',
+      type: json['type'] as String? ?? 'regular',
+      target: _forYouParseNum(json['target']),
+      rewardPoints: (json['reward_points'] is int) ? json['reward_points'] as int : int.tryParse(json['reward_points']?.toString() ?? '0') ?? 0,
+      icon: json['icon'] as String?,
+      color: json['color'] as String?,
+      frequency: json['frequency'] as String? ?? 'once',
+    );
+  }
+}
+
+class ChallengesForYouResponse {
+  final List<ForYouAcceptedItem> accepted;
+  final List<ForYouAvailableItem> available;
+
+  ChallengesForYouResponse({required this.accepted, required this.available});
+
+  factory ChallengesForYouResponse.fromJson(Map<String, dynamic> json) {
+    final acceptedList = json['accepted'] as List<dynamic>? ?? [];
+    final availableList = json['available'] as List<dynamic>? ?? [];
+    return ChallengesForYouResponse(
+      accepted: acceptedList.map((e) => ForYouAcceptedItem.fromJson(Map<String, dynamic>.from(e as Map))).toList(),
+      available: availableList.map((e) => ForYouAvailableItem.fromJson(Map<String, dynamic>.from(e as Map))).toList(),
+    );
+  }
+}

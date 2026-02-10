@@ -72,6 +72,14 @@ class ChallengeService {
         .toList();
   }
 
+  /// GET /api/challenges/for-you — accepted + available in one call (authenticated).
+  Future<ChallengesForYouResponse> getChallengesForYou() async {
+    final dio = await ApiClient.instance(AppConfig.apiBaseUrl);
+    final res = await dio.get("/challenges/for-you");
+    final data = res.data is Map ? res.data as Map<String, dynamic> : <String, dynamic>{};
+    return ChallengesForYouResponse.fromJson(data);
+  }
+
   // ✅ Accept a quest: POST /api/challenges/{id}/accept
   Future<void> acceptQuest(int challengeId) async {
     final dio = await ApiClient.instance(AppConfig.apiBaseUrl);

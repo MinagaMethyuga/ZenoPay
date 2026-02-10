@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:zenopay/Components/CustomBottomNav.dart';
-import '../models/challenge_model.dart';
-import '../services/challenge_service.dart';
+import 'package:zenopay/models/challenge_model.dart';
+import 'package:zenopay/services/challenge_service.dart';
 
 
 class ChallengesPage extends StatefulWidget {
@@ -12,14 +12,12 @@ class ChallengesPage extends StatefulWidget {
 }
 
 class _ChallengesPageState extends State<ChallengesPage> {
-  String selectedTab = 'Active';
   final ChallengeService _challengeService = ChallengeService();
 
-  List<Challenge> allChallenges = [];
-  List<Challenge> dailyChallenges = [];
-  List<Challenge> activeChallenges = [];
-  /// challengeId -> status + progress + target (from /api/my-challenges)
-  Map<int, MyChallengeStatus> acceptedMap = {};
+  /// From GET /api/challenges/for-you
+  List<ForYouAcceptedItem> acceptedChallenges = [];
+  List<ForYouAvailableItem> availableChallenges = [];
+  List<ForYouAvailableItem> dailyChallenges = [];
   bool isLoading = true;
   int totalXP = 0;
   int streakDays = 12;
@@ -35,31 +33,13 @@ class _ChallengesPageState extends State<ChallengesPage> {
     setState(() => isLoading = true);
 
     try {
-      final catalog = await _challengeService.getActiveChallenges();
-      List<UserChallengeItem> myActive = [];
-      List<UserChallengeItem> myCompleted = [];
-      try {
-        myActive = (await _challengeService.getMyChallenges('active')).cast<UserChallengeItem>();
-      } catch (_) {}
-      try {
-        myCompleted = (await _challengeService.getMyChallenges('completed')).cast<UserChallengeItem>();
-      } catch (_) {}
-
-      final Map<int, MyChallengeStatus> merged = {};
-      for (final item in myActive) {
-        merged[item.challenge.id] = item.toMyChallengeStatus();
-      }
-      for (final item in myCompleted) {
-        merged[item.challenge.id] = item.toMyChallengeStatus();
-      }
-
+      final response = await _challengeService.getChallengesForYou();
       if (!mounted) return;
       setState(() {
-        allChallenges = catalog.cast<Challenge>();
-        dailyChallenges = catalog.where((c) => c.frequency == 'Daily').cast<Challenge>().toList();
-        activeChallenges = catalog.where((c) => c.frequency != 'Daily').cast<Challenge>().toList();
-        acceptedMap = merged;
-        totalXP = catalog.fold(0, (sum, c) => sum + c.xpReward);
+        acceptedChallenges = response.accepted;
+        availableChallenges = response.available;
+        dailyChallenges = response.available.where((c) => c.frequency == 'daily').toList();
+        totalXP = response.accepted.fold(0, (sum, c) => sum + c.rewardPoints);
         isLoading = false;
       });
     } catch (e) {
@@ -103,9 +83,13 @@ class _ChallengesPageState extends State<ChallengesPage> {
                             const SizedBox(height: 16),
                             _buildDailyQuestsList(),
                             const SizedBox(height: 24),
-                            _buildTabSelector(),
-                            const SizedBox(height: 16),
-                            _buildActiveChallengesList(),
+                            _buildSectionHeader('Your challenges', Icons.emoji_events_rounded),
+                            const SizedBox(height: 12),
+                            _buildAcceptedChallengesList(),
+                            const SizedBox(height: 24),
+                            _buildSectionHeader('Available to accept', Icons.add_task_rounded),
+                            const SizedBox(height: 12),
+                            _buildAvailableChallengesList(),
                             const SizedBox(height: 24),
                             _buildAdaptiveChallengesSection(),
                             const SizedBox(height: 100),
@@ -359,14 +343,14 @@ class _ChallengesPageState extends State<ChallengesPage> {
         scrollDirection: Axis.horizontal,
         itemCount: dailyChallenges.length,
         itemBuilder: (context, index) {
-          final challenge = dailyChallenges[index];
-          return _buildDailyQuestCard(challenge: challenge);
+          final item = dailyChallenges[index];
+          return _buildDailyQuestCard(item: item);
         },
       ),
     );
   }
 
-  Widget _buildDailyQuestCard({required Challenge challenge}) {
+  Widget _buildDailyQuestCard({required ForYouAvailableItem item}) {
     return Container(
       width: 220,
       margin: const EdgeInsets.only(right: 16),
@@ -383,12 +367,12 @@ class _ChallengesPageState extends State<ChallengesPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            challenge.icon ?? "🎯",
+            item.icon ?? "🎯",
             style: const TextStyle(fontSize: 28),
           ),
           const SizedBox(height: 10),
           Text(
-            challenge.name,
+            item.title,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
@@ -399,7 +383,7 @@ class _ChallengesPageState extends State<ChallengesPage> {
           ),
           const SizedBox(height: 6),
           Text(
-            challenge.description,
+            item.description,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
@@ -417,7 +401,7 @@ class _ChallengesPageState extends State<ChallengesPage> {
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Text(
-                  '+${challenge.xpReward} XP',
+                  '+${item.rewardPoints} XP',
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 12,
@@ -426,8 +410,8 @@ class _ChallengesPageState extends State<ChallengesPage> {
                 ),
               ),
               const Spacer(),
-              Icon(
-                challenge.unlockBadge ? Icons.workspace_premium_rounded : Icons.star_rounded,
+              const Icon(
+                Icons.star_rounded,
                 color: Colors.white,
                 size: 20,
               ),
@@ -438,66 +422,76 @@ class _ChallengesPageState extends State<ChallengesPage> {
     );
   }
 
-  Widget _buildTabSelector() {
-    final tabs = ['Active', 'Daily', 'All'];
-
+  Widget _buildSectionHeader(String title, IconData icon) {
     return Row(
-      children: tabs.map((tab) {
-        final isSelected = selectedTab == tab;
-        return Expanded(
-          child: GestureDetector(
-            onTap: () => setState(() => selectedTab = tab),
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              decoration: BoxDecoration(
-                color: isSelected ? const Color(0xFF6366F1) : Colors.white,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                  color: isSelected ? const Color(0xFF6366F1) : const Color(0xFFE2E8F0),
-                ),
-              ),
-              child: Center(
-                child: Text(
-                  tab,
-                  style: TextStyle(
-                    color: isSelected ? Colors.white : const Color(0xFF64748B),
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                  ),
-                ),
-              ),
-            ),
+      children: [
+        Icon(icon, size: 22, color: const Color(0xFF6366F1)),
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF1E293B),
           ),
-        );
-      }).toList(),
+        ),
+      ],
     );
   }
 
-  Widget _buildActiveChallengesList() {
-    List<Challenge> challenges;
-
-    if (selectedTab == 'Daily') {
-      challenges = dailyChallenges;
-    } else if (selectedTab == 'All') {
-      challenges = allChallenges;
-    } else {
-      challenges = activeChallenges;
-    }
-
-    if (challenges.isEmpty) {
-      return const Center(
-        child: Text(
-          'No challenges available.',
-          style: TextStyle(color: Color(0xFF64748B)),
+  Widget _buildAcceptedChallengesList() {
+    if (acceptedChallenges.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+        ),
+        child: const Center(
+          child: Text(
+            'No accepted challenges yet. Accept one from below!',
+            style: TextStyle(color: Color(0xFF64748B), fontSize: 14),
+            textAlign: TextAlign.center,
+          ),
         ),
       );
     }
 
     return Column(
-      children: challenges.map((challenge) {
+      children: acceptedChallenges.map((item) {
         return Padding(
           padding: const EdgeInsets.only(bottom: 12),
-          child: _buildChallengeCard(challenge: challenge),
+          child: _buildForYouAcceptedCard(item),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildAvailableChallengesList() {
+    if (availableChallenges.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+        ),
+        child: const Center(
+          child: Text(
+            'No more challenges to accept. Great progress!',
+            style: TextStyle(color: Color(0xFF64748B), fontSize: 14),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      children: availableChallenges.map((item) {
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: _buildForYouAvailableCard(item),
         );
       }).toList(),
     );
@@ -525,7 +519,12 @@ class _ChallengesPageState extends State<ChallengesPage> {
     );
   }
 
-  Widget _buildChallengeCard({required Challenge challenge}) {
+  Widget _buildForYouAcceptedCard(ForYouAcceptedItem item) {
+    final status = MyChallengeStatus(
+      status: item.status,
+      progress: item.progress,
+      targetValue: item.target?.toInt(),
+    );
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -544,28 +543,28 @@ class _ChallengesPageState extends State<ChallengesPage> {
           Row(
             children: [
               Container(
-                width: 54, // Reduced from 56
-                height: 54, // Reduced from 56
+                width: 54,
+                height: 54,
                 decoration: BoxDecoration(
                   color: const Color(0xFFF1F5F9),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Center(
                   child: Text(
-                    challenge.icon ?? "🎯",
+                    item.icon ?? "🎯",
                     style: const TextStyle(fontSize: 26),
                   ),
                 ),
               ),
-              const SizedBox(width: 12), // Reduced from 14
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      challenge.name,
+                      item.title,
                       style: const TextStyle(
-                        fontSize: 15, // Reduced from 16
+                        fontSize: 15,
                         fontWeight: FontWeight.bold,
                         color: Color(0xFF1E293B),
                       ),
@@ -576,22 +575,14 @@ class _ChallengesPageState extends State<ChallengesPage> {
                     Row(
                       children: [
                         _buildBadge(
-                          challenge.difficulty,
-                          _getDifficultyColor(challenge.difficulty),
+                          item.frequency,
+                          const Color(0xFF6366F1),
                         ),
-                        const SizedBox(width: 6), // Reduced from 8
+                        const SizedBox(width: 6),
                         _buildBadge(
-                          '+${challenge.xpReward} XP',
+                          '+${item.rewardPoints} XP',
                           const Color(0xFF10B981),
                         ),
-                        if (challenge.unlockBadge) ...[
-                          const SizedBox(width: 6),
-                          const Icon(
-                            Icons.workspace_premium_rounded,
-                            color: Color(0xFFF59E0B),
-                            size: 18,
-                          ),
-                        ],
                       ],
                     ),
                   ],
@@ -599,114 +590,132 @@ class _ChallengesPageState extends State<ChallengesPage> {
               ),
             ],
           ),
-          const SizedBox(height: 12), // Reduced from 14
+          const SizedBox(height: 12),
           Text(
-            challenge.description,
+            item.description,
             style: const TextStyle(
-              fontSize: 13, // Reduced from 14
+              fontSize: 13,
               color: Color(0xFF64748B),
             ),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
-          if (acceptedMap[challenge.id] != null) ...[
-            const SizedBox(height: 10),
-            _buildProgressSection(acceptedMap[challenge.id]!),
-          ],
-          const SizedBox(height: 8), // Reduced from 10
+          const SizedBox(height: 10),
+          _buildProgressSection(status),
+          const SizedBox(height: 8),
           SizedBox(
             width: double.infinity,
-            child: _buildChallengeCardButton(challenge),
+            child: _buildForYouCardButton(
+              challengeId: item.id,
+              title: item.title,
+              isAccepted: true,
+              status: item.status,
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildProgressSection(MyChallengeStatus s) {
-    final target = s.targetValue;
-    final hasTarget = target != null && target > 0;
-    final fraction = hasTarget ? (s.progress / target).clamp(0.0, 1.0) : 0.0;
-
+  Widget _buildForYouAvailableCard(ForYouAvailableItem item) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  Icon(
-                    s.status == 'completed'
-                        ? Icons.check_circle_rounded
-                        : Icons.trending_up_rounded,
-                    size: 16,
-                    color: s.status == 'completed'
-                        ? const Color(0xFF10B981)
-                        : const Color(0xFF6366F1),
+              Container(
+                width: 54,
+                height: 54,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Center(
+                  child: Text(
+                    item.icon ?? "🎯",
+                    style: const TextStyle(fontSize: 26),
                   ),
-                  const SizedBox(width: 6),
-                  Text(
-                    s.status == 'completed' ? 'Completed' : 'In progress',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: s.status == 'completed'
-                          ? const Color(0xFF10B981)
-                          : const Color(0xFF6366F1),
-                    ),
-                  ),
-                ],
+                ),
               ),
-              Text(
-                hasTarget ? '${s.progress} / $target' : '${s.progress}',
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF64748B),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item.title,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF1E293B),
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        _buildBadge(
+                          item.frequency,
+                          const Color(0xFF6366F1),
+                        ),
+                        const SizedBox(width: 6),
+                        _buildBadge(
+                          '+${item.rewardPoints} XP',
+                          const Color(0xFF10B981),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
-          if (hasTarget) ...[
-            const SizedBox(height: 8),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(6),
-              child: LinearProgressIndicator(
-                value: fraction,
-                minHeight: 6,
-                backgroundColor: const Color(0xFFE2E8F0),
-                valueColor: AlwaysStoppedAnimation<Color>(
-                  s.status == 'completed'
-                      ? const Color(0xFF10B981)
-                      : const Color(0xFF6366F1),
-                ),
-              ),
+          const SizedBox(height: 12),
+          Text(
+            item.description,
+            style: const TextStyle(
+              fontSize: 13,
+              color: Color(0xFF64748B),
             ),
-          ],
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: _buildForYouCardButton(
+              challengeId: item.id,
+              title: item.title,
+              isAccepted: false,
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildChallengeCardButton(Challenge challenge) {
-    final my = acceptedMap[challenge.id];
-    final isActive = my?.status == 'active';
-    final isCompleted = my?.status == 'completed';
-    final isAccepted = isActive || isCompleted;
-
+  Widget _buildForYouCardButton({
+    required int challengeId,
+    required String title,
+    required bool isAccepted,
+    String? status,
+  }) {
     String label;
-    if (isCompleted) {
-      label = 'Completed';
-    } else if (isActive) {
-      label = 'Accepted';
+    if (isAccepted) {
+      label = status == 'completed' ? 'Completed' : 'Accepted';
     } else {
       label = 'Accept Quest';
     }
@@ -716,11 +725,11 @@ class _ChallengesPageState extends State<ChallengesPage> {
           ? null
           : () async {
               try {
-                await _challengeService.acceptQuest(challenge.id);
+                await _challengeService.acceptQuest(challengeId);
                 if (!mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text('Challenge "${challenge.name}" accepted!'),
+                    content: Text('Challenge "$title" accepted!'),
                     backgroundColor: const Color(0xFF10B981),
                   ),
                 );
@@ -753,6 +762,72 @@ class _ChallengesPageState extends State<ChallengesPage> {
           fontSize: 13,
           fontWeight: FontWeight.w600,
         ),
+      ),
+    );
+  }
+
+  Widget _buildProgressSection(MyChallengeStatus s) {
+    final target = s.targetValue;
+    final hasTarget = target != null && target > 0;
+    final fraction = hasTarget ? (s.progress / target).clamp(0.0, 1.0) : 0.0;
+    final isCompleted = s.status == 'completed';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    isCompleted ? Icons.check_circle_rounded : Icons.trending_up_rounded,
+                    size: 16,
+                    color: isCompleted ? const Color(0xFF10B981) : const Color(0xFF6366F1),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    isCompleted ? 'Completed' : 'In progress',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: isCompleted ? const Color(0xFF10B981) : const Color(0xFF6366F1),
+                    ),
+                  ),
+                ],
+              ),
+              Text(
+                hasTarget ? '${s.progress} / $target' : '${s.progress}',
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF64748B),
+                ),
+              ),
+            ],
+          ),
+          if (hasTarget) ...[
+            const SizedBox(height: 8),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: LinearProgressIndicator(
+                value: fraction,
+                minHeight: 6,
+                backgroundColor: const Color(0xFFE2E8F0),
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  isCompleted ? const Color(0xFF10B981) : const Color(0xFF6366F1),
+                ),
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
