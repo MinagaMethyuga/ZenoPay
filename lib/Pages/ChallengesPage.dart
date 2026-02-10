@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:zenopay/Components/CustomBottomNav.dart';
 import 'package:zenopay/models/challenge_model.dart';
 import 'package:zenopay/services/challenge_service.dart';
+import 'package:zenopay/state/current_user.dart';
 
 
 class ChallengesPage extends StatefulWidget {
@@ -33,13 +34,28 @@ class _ChallengesPageState extends State<ChallengesPage> {
     setState(() => isLoading = true);
 
     try {
+      final prevCompletedIds = acceptedChallenges
+          .where((c) => c.status == 'completed')
+          .map((c) => c.id)
+          .toSet();
+
       final response = await _challengeService.getChallengesForYou();
+
+      final newlyCompleted = response.accepted
+          .where((c) => c.status == 'completed' && !prevCompletedIds.contains(c.id))
+          .isNotEmpty;
+      if (newlyCompleted) {
+        await CurrentUser.refreshCurrentUser();
+      }
+
+      final userXp = CurrentUser.value?.totalXp;
+
       if (!mounted) return;
       setState(() {
         acceptedChallenges = response.accepted;
         availableChallenges = response.available;
         dailyChallenges = response.available.where((c) => c.frequency == 'daily').toList();
-        totalXP = response.accepted.fold(0, (sum, c) => sum + c.rewardPoints);
+        totalXP = userXp ?? response.accepted.fold(0, (sum, c) => sum + c.rewardPoints);
         isLoading = false;
       });
     } catch (e) {

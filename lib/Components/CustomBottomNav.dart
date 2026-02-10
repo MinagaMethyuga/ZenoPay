@@ -63,9 +63,12 @@ class _CustomBottomNavState extends State<CustomBottomNav>
         );
         break;
       case 3:
-        Navigator.pushReplacementNamed(context, '/Leaderboards');
+        Navigator.pushReplacementNamed(context, '/Budgeting');
         break;
       case 4:
+        Navigator.pushReplacementNamed(context, '/Leaderboards');
+        break;
+      case 5:
         Navigator.pushReplacementNamed(context, '/profile');
         break;
     }
@@ -77,7 +80,7 @@ class _CustomBottomNavState extends State<CustomBottomNav>
       child: Container(
         width: MediaQuery.of(context).size.width * 0.9,
         constraints: const BoxConstraints(maxWidth: 360),
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
           color: const Color(0xFF1E293B),
           borderRadius: BorderRadius.circular(32),
@@ -135,14 +138,19 @@ class _CustomBottomNavState extends State<CustomBottomNav>
               ),
             ),
             _buildNavItem(
+              icon: Icons.account_balance_wallet_rounded,
+              label: 'Budget',
+              index: 3,
+            ),
+            _buildNavItem(
               icon: Icons.bar_chart,
               label: 'Leaderboard',
-              index: 3,
+              index: 4,
             ),
             _buildNavItem(
               icon: Icons.person,
               label: 'Profile',
-              index: 4,
+              index: 5,
             ),
           ],
         ),
@@ -197,7 +205,7 @@ class _CustomBottomNavState extends State<CustomBottomNav>
               duration: const Duration(milliseconds: 300),
               curve: Curves.easeInOut,
               style: TextStyle(
-                fontSize: isActive ? 10 : 9,
+                fontSize: isActive ? 9.5 : 8.5,
                 fontWeight: isActive ? FontWeight.bold : FontWeight.w600,
                 color: isActive
                     ? const Color(0xFF3B82F6)

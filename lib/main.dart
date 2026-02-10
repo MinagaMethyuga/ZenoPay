@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:zenopay/Pages/BudgetingPage.dart';
 import 'package:zenopay/Pages/ChallengesPage.dart';
 import 'package:zenopay/Pages/Leaderboards.dart';
 import 'package:zenopay/services/auth_api.dart';
@@ -57,6 +58,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         '/register': (context) => const Register(),
         '/onboarding': (context) => const OnboardingJourney(),
         '/ZenoChallenge': (context) => const ChallengesPage(),
+        '/Budgeting': (context) => const BudgetingPage(),
         '/Leaderboards': (context) => const Leaderboards(),
       },
     );

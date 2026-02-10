@@ -416,7 +416,7 @@ class _LeaderboardsState extends State<Leaderboards> {
             bottom: 16,
             left: 0,
             right: 0,
-            child: CustomBottomNav(currentIndex: 3),
+            child: CustomBottomNav(currentIndex: 4),
           ),
         ],
       ),

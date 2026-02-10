@@ -5,8 +5,10 @@ import "package:zenopay/Components/add_transaction_page.dart" hide IconRegistry;
 
 import "package:zenopay/core/config.dart";
 import "package:zenopay/core/icon_registry.dart";
+import "package:zenopay/models/user_model.dart";
 import "package:zenopay/services/api_client.dart";
 import "package:zenopay/services/auth_api.dart";
+import "package:zenopay/state/current_user.dart";
 
 class Home extends StatefulWidget {
   const Home({super.key});
@@ -23,6 +25,7 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
   Map<String, dynamic>? _user;
   Map<String, dynamic>? _profile;
   List<Map<String, dynamic>> _wallets = [];
+  ZenoUser? _meUser;
 
   // Last N transactions
   List<Map<String, dynamic>> transactions = [];
@@ -90,6 +93,9 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
         throw Exception("Not authenticated. Please log in again.");
       }
 
+      final parsedUser = ZenoUser.fromJson(user);
+      CurrentUser.set(parsedUser);
+
       // profile
       final dynamic rawProfile = user["profile"];
       final profile = (rawProfile is Map<String, dynamic>)
@@ -130,6 +136,7 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
         _profile = profile;
         _wallets = wallets;
         transactions = mapped;
+        _meUser = parsedUser;
       });
     } catch (e) {
       if (!mounted) return;
@@ -181,6 +188,24 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
   }
 
   int get _level => _asInt(_profile?["level"], 1);
+
+  String get _levelLabel {
+    final lvl = _meUser?.levelName.trim();
+    if (lvl == null || lvl.isEmpty) return "Beginner";
+    return lvl;
+  }
+
+  String get _displayXp {
+    final xp = _meUser?.totalXp ?? 0;
+    final s = xp.toString();
+    if (s.length <= 3) return s;
+    final buf = StringBuffer();
+    for (int i = 0; i < s.length; i++) {
+      if (i > 0 && (s.length - i) % 3 == 0) buf.write(',');
+      buf.write(s[i]);
+    }
+    return buf.toString();
+  }
 
   int get _currentStreak => _asInt(_profile?["current_streak"], 0);
 
@@ -270,7 +295,7 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
                                       ),
                                       const SizedBox(width: 10),
                                       Text(
-                                        "LVL $_level",
+                                        "LVL $_levelLabel",
                                         style: const TextStyle(
                                           fontSize: 12,
                                           fontWeight: FontWeight.w700,
@@ -282,32 +307,67 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
                                 ],
                               ),
                             ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 10),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(16),
-                                boxShadow: const [
-                                  BoxShadow(
-                                    color: Color(0x11000000),
-                                    blurRadius: 16,
-                                    offset: Offset(0, 8),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 10),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(16),
+                                    boxShadow: const [
+                                      BoxShadow(
+                                        color: Color(0x11000000),
+                                        blurRadius: 16,
+                                        offset: Offset(0, 8),
+                                      ),
+                                    ],
                                   ),
-                                ],
-                              ),
-                              child: Row(
-                                children: [
-                                  const Icon(Icons.local_fire_department,
-                                      color: Color(0xFFFF7A00), size: 18),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    _currentStreak.toString(),
-                                    style: const TextStyle(
-                                        fontWeight: FontWeight.w800),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.star_rounded,
+                                          color: Color(0xFF4F6DFF), size: 18),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        "$_displayXp XP",
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.w800),
+                                      ),
+                                    ],
                                   ),
-                                ],
-                              ),
+                                ),
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 10),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(16),
+                                    boxShadow: const [
+                                      BoxShadow(
+                                        color: Color(0x11000000),
+                                        blurRadius: 16,
+                                        offset: Offset(0, 8),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.local_fire_department,
+                                          color: Color(0xFFFF7A00), size: 18),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        _currentStreak.toString(),
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.w800),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ),

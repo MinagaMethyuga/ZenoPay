@@ -7,6 +7,7 @@ import "package:flutter/services.dart";
 import "package:http/http.dart" as http;
 import "package:image_picker/image_picker.dart";
 import "package:zenopay/core/config.dart";
+import "package:zenopay/state/current_user.dart";
 
 // -------------------- Models --------------------
 
@@ -703,6 +704,8 @@ class _AddTransactionPageState extends State<AddTransactionPage> with TickerProv
       }
 
       _lastWallet = wallet;
+
+      await CurrentUser.refreshCurrentUser();
 
       if (!mounted) return;
       HapticFeedback.lightImpact();
