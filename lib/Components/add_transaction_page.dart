@@ -11,6 +11,7 @@ import "package:zenopay/services/budget_service.dart";
 import "package:zenopay/services/budget_notification_service.dart";
 import "package:zenopay/theme/zenopay_colors.dart";
 import "package:zenopay/Components/XpGainOverlay.dart";
+import "package:zenopay/Components/StreakCelebrationOverlay.dart";
 
 // -------------------- Models --------------------
 
@@ -709,6 +710,8 @@ class _AddTransactionPageState extends State<AddTransactionPage> with TickerProv
       _lastWallet = wallet;
 
       await CurrentUser.refreshCurrentUser();
+      final showStreakOverlay = CurrentUser.streakJustIncreased;
+      if (showStreakOverlay) CurrentUser.clearStreakJustIncreased();
 
       // Check budgets and send notifications if needed
       if (!isIncome) {
@@ -739,8 +742,15 @@ class _AddTransactionPageState extends State<AddTransactionPage> with TickerProv
 
       if (!mounted) return;
       HapticFeedback.lightImpact();
-      XpGainOverlay.show(xp: 5);
       Navigator.pop(context, true);
+      // Show celebration on the screen we returned to (after pop) so overlay isn’t covered
+      if (showStreakOverlay) {
+        Future.delayed(const Duration(milliseconds: 350), () {
+          StreakCelebrationOverlay.show();
+        });
+      } else {
+        XpGainOverlay.show(xp: 5);
+      }
     } catch (e) {
       _toast("Save failed: $e");
     } finally {

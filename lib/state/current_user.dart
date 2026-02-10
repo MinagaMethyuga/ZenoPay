@@ -1,5 +1,4 @@
 import "package:flutter/foundation.dart";
-import "package:zenopay/Components/StreakCelebrationOverlay.dart";
 import "package:zenopay/models/user_model.dart";
 import "package:zenopay/services/auth_api.dart";
 
@@ -12,13 +11,22 @@ class CurrentUser {
 
   static ZenoUser? get value => notifier.value;
 
+  /// True when the last refresh() saw streak increase (for transaction/challenge flows to show overlay after pop).
+  static bool get streakJustIncreased => _streakJustIncreased;
+  static bool _streakJustIncreased = false;
+  static void clearStreakJustIncreased() {
+    _streakJustIncreased = false;
+  }
+
   static void set(ZenoUser? user) {
     notifier.value = user;
   }
 
   /// Refreshes `/auth/me` and updates [notifier]. Call after login, transaction, or challenge completion.
-  /// Shows streak celebration overlay if streak increased.
+  /// Sets [streakJustIncreased] if streak increased (caller can show overlay after navigator pop).
   static Future<ZenoUser?> refresh() async {
+    _streakJustIncreased = false;
+
     final auth = AuthApi();
     final me = await auth.me();
 
@@ -44,9 +52,19 @@ class CurrentUser {
 
     set(user);
 
-    // Only show when streak actually increased during this session (not on first login)
+    if (kDebugMode) {
+      if (!hadPreviousUser) {
+        debugPrint('Streak: skip overlay (no previous user / first load)');
+      } else if (newStreak <= oldStreak) {
+        debugPrint('Streak: skip overlay (newStreak=$newStreak <= oldStreak=$oldStreak)');
+      } else if (newStreak <= 0) {
+        debugPrint('Streak: skip overlay (newStreak=$newStreak)');
+      }
+    }
+
+    // Only signal when streak actually increased (caller shows overlay after pop so it’s visible)
     if (hadPreviousUser && newStreak > oldStreak && newStreak > 0) {
-      StreakCelebrationOverlay.show();
+      _streakJustIncreased = true;
     }
 
     return user;

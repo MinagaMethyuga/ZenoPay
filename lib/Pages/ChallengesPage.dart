@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:zenopay/Components/CustomBottomNav.dart';
 import 'package:zenopay/Components/FullPageLoader.dart';
+import 'package:zenopay/Components/StreakCelebrationOverlay.dart';
 import 'package:zenopay/models/challenge_model.dart';
 import 'package:zenopay/models/user_model.dart';
 import 'package:zenopay/services/challenge_service.dart';
@@ -72,6 +73,10 @@ class _ChallengesPageState extends State<ChallengesPage> {
           .isNotEmpty;
       if (newlyCompleted) {
         await CurrentUser.refreshCurrentUser();
+        if (CurrentUser.streakJustIncreased) {
+          CurrentUser.clearStreakJustIncreased();
+          StreakCelebrationOverlay.show();
+        }
       }
 
       final userXp = CurrentUser.value?.totalXp;

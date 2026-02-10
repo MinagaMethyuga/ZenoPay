@@ -94,13 +94,27 @@ class ZenoUser {
   }
 
   factory ZenoUser.fromJson(Map<String, dynamic> json) {
-    // Parse nested profile safely
+    // Parse nested profile safely; fallback to root-level streak/xp/level if profile missing
     UserProfile? profile;
     final rawProfile = json["profile"];
     if (rawProfile is Map<String, dynamic>) {
       profile = UserProfile.fromJson(rawProfile);
     } else if (rawProfile is Map) {
       profile = UserProfile.fromJson(rawProfile.cast<String, dynamic>());
+    }
+    if (profile == null &&
+        (json["current_streak"] != null ||
+            json["best_streak"] != null ||
+            json["xp"] != null ||
+            json["level"] != null)) {
+      profile = UserProfile(
+        xp: UserProfile._asInt(json["xp"], 0),
+        level: UserProfile._asInt(json["level"], 1),
+        currentStreak: UserProfile._asInt(json["current_streak"], 0),
+        bestStreak: UserProfile._asInt(json["best_streak"], 0),
+        lastActivityDate: UserProfile._asStringOrNull(json["last_activity_date"]),
+        lastLoginDate: UserProfile._asStringOrNull(json["last_login_date"]),
+      );
     }
 
     // Prefer root gamification fields; fallback to profile
