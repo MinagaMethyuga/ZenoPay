@@ -208,8 +208,6 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
     return buf.toString();
   }
 
-  int get _currentStreak => _asInt(_profile?["current_streak"], 0);
-
   double _walletBalanceByType(String type) {
     for (final w in _wallets) {
       if (w["type"] == type) {
@@ -347,33 +345,40 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
                                   ),
                                 ),
                                 const SizedBox(width: 8),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 12, vertical: 10),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(16),
-                                    boxShadow: const [
-                                      BoxShadow(
-                                        color: Color(0x11000000),
-                                        blurRadius: 16,
-                                        offset: Offset(0, 8),
+                                ValueListenableBuilder<ZenoUser?>(
+                                  valueListenable: CurrentUser.notifier,
+                                  builder: (context, user, _) {
+                                    final streak = user?.profile?.currentStreak ??
+                                        _asInt(_profile?["current_streak"], 0);
+                                    return Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 12, vertical: 10),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(16),
+                                        boxShadow: const [
+                                          BoxShadow(
+                                            color: Color(0x11000000),
+                                            blurRadius: 16,
+                                            offset: Offset(0, 8),
+                                          ),
+                                        ],
                                       ),
-                                    ],
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      const Icon(Icons.local_fire_department,
-                                          color: Color(0xFFFF7A00), size: 18),
-                                      const SizedBox(width: 6),
-                                      Text(
-                                        _currentStreak.toString(),
-                                        style: const TextStyle(
-                                            fontWeight: FontWeight.w800),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          const Icon(Icons.local_fire_department,
+                                              color: Color(0xFFFF7A00), size: 18),
+                                          const SizedBox(width: 6),
+                                          Text(
+                                            streak.toString(),
+                                            style: const TextStyle(
+                                                fontWeight: FontWeight.w800),
+                                          ),
+                                        ],
                                       ),
-                                    ],
-                                  ),
+                                    );
+                                  },
                                 ),
                               ],
                             ),

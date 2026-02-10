@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:zenopay/core/app_nav_key.dart';
 import 'package:zenopay/Pages/BudgetingPage.dart';
 import 'package:zenopay/Pages/ChallengesPage.dart';
 import 'package:zenopay/Pages/Leaderboards.dart';
@@ -9,8 +10,6 @@ import 'Pages/Login.dart';
 import 'Pages/Home.dart';
 import 'Pages/register.dart';
 import 'Pages/OnboardingJourney.dart';
-
-final GlobalKey<NavigatorState> navKey = GlobalKey<NavigatorState>();
 
 void main() {
   runApp(const MyApp());

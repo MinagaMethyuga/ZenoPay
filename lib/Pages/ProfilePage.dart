@@ -18,7 +18,6 @@ class _ProfilePageState extends State<ProfilePage> {
   bool _loading = true;
   String? _error;
   ZenoUser? _user;
-  int _streak = 0;
   List<ForYouAcceptedItem> _completedChallenges = [];
 
   @override
@@ -54,15 +53,6 @@ class _ProfilePageState extends State<ProfilePage> {
       final user = ZenoUser.fromJson(userMap);
       CurrentUser.set(user);
 
-      final rawProfile = userMap['profile'];
-      int streak = 0;
-      if (rawProfile is Map<String, dynamic>) {
-        streak = _asInt(rawProfile['current_streak'], 0);
-      } else if (rawProfile is Map) {
-        final map = rawProfile.cast<String, dynamic>();
-        streak = _asInt(map['current_streak'], 0);
-      }
-
       final challengeService = ChallengeService();
       final forYou = await challengeService.getChallengesForYou();
       final completed = forYou.accepted.where((a) => a.status == 'completed').toList();
@@ -70,7 +60,6 @@ class _ProfilePageState extends State<ProfilePage> {
       if (!mounted) return;
       setState(() {
         _user = user;
-        _streak = streak;
         _completedChallenges = completed;
         _loading = false;
       });
@@ -294,31 +283,39 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                 ),
               ),
-              if (_streak > 0) ...[
-                const SizedBox(width: 10),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFFF7ED),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.local_fire_department_rounded, color: Color(0xFFF97316), size: 18),
-                      const SizedBox(width: 4),
-                      Text(
-                        '$_streak day streak',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF1E2A3B),
-                          fontSize: 13,
-                        ),
+              ValueListenableBuilder<ZenoUser?>(
+                valueListenable: CurrentUser.notifier,
+                builder: (context, globalUser, _) {
+                  final streak = globalUser?.profile?.currentStreak ??
+                      _user?.profile?.currentStreak ?? 0;
+                  if (streak <= 0) return const SizedBox.shrink();
+                  return Padding(
+                    padding: const EdgeInsets.only(left: 10),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFF7ED),
+                        borderRadius: BorderRadius.circular(20),
                       ),
-                    ],
-                  ),
-                ),
-              ],
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.local_fire_department_rounded, color: Color(0xFFF97316), size: 18),
+                          const SizedBox(width: 4),
+                          Text(
+                            '$streak day streak',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF1E2A3B),
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
             ],
           ),
         ],

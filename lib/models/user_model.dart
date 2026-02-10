@@ -1,11 +1,19 @@
-/// Profile payload from API (user_profiles): xp, level (int 1/2/3).
+/// Profile payload from API (user_profiles): xp, level, streaks.
 class UserProfile {
   final int xp;
   final int level; // 1=Beginner, 2=Intermediate, 3=Pro
+  final int currentStreak;
+  final int bestStreak;
+  final String? lastActivityDate;
+  final String? lastLoginDate;
 
   const UserProfile({
     required this.xp,
     required this.level,
+    this.currentStreak = 0,
+    this.bestStreak = 0,
+    this.lastActivityDate,
+    this.lastLoginDate,
   });
 
   static int _asInt(dynamic value, [int fallback = 0]) {
@@ -15,10 +23,23 @@ class UserProfile {
     return fallback;
   }
 
-  factory UserProfile.fromJson(Map<String, dynamic> json) {
+  static String? _asStringOrNull(dynamic value) {
+    if (value == null) return null;
+    final s = value.toString().trim();
+    return s.isEmpty ? null : s;
+  }
+
+  factory UserProfile.fromJson(Map<String, dynamic>? json) {
+    if (json == null) {
+      return const UserProfile(xp: 0, level: 1);
+    }
     return UserProfile(
       xp: _asInt(json["xp"], 0),
       level: _asInt(json["level"], 1),
+      currentStreak: _asInt(json["current_streak"], 0),
+      bestStreak: _asInt(json["best_streak"], 0),
+      lastActivityDate: _asStringOrNull(json["last_activity_date"]),
+      lastLoginDate: _asStringOrNull(json["last_login_date"]),
     );
   }
 

@@ -1,4 +1,5 @@
 import "package:flutter/foundation.dart";
+import "package:zenopay/Components/StreakCelebrationOverlay.dart";
 import "package:zenopay/models/user_model.dart";
 import "package:zenopay/services/auth_api.dart";
 
@@ -16,6 +17,7 @@ class CurrentUser {
   }
 
   /// Refreshes `/auth/me` and updates [notifier]. Call after login, transaction, or challenge completion.
+  /// Shows streak celebration overlay if streak increased.
   static Future<ZenoUser?> refresh() async {
     final auth = AuthApi();
     final me = await auth.me();
@@ -35,8 +37,16 @@ class CurrentUser {
       return null;
     }
 
+    final oldStreak = value?.profile?.currentStreak ?? 0;
     final user = ZenoUser.fromJson(userJson);
+    final newStreak = user.profile?.currentStreak ?? 0;
+
     set(user);
+
+    if (newStreak > oldStreak && newStreak > 0) {
+      StreakCelebrationOverlay.show();
+    }
+
     return user;
   }
 

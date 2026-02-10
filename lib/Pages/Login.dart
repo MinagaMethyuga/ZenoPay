@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:zenopay/services/auth_api.dart';
+import 'package:zenopay/state/current_user.dart';
 
 class Login extends StatefulWidget {
   const Login({super.key});
@@ -45,6 +46,7 @@ class _LoginState extends State<Login> with TickerProviderStateMixin {
     setState(() => _loading = true);
     try {
       await api.login(email, pass);
+      await CurrentUser.refreshCurrentUser();
       if (!mounted) return;
       Navigator.pushNamedAndRemoveUntil(context, '/home', (r) => false);
     } catch (e) {

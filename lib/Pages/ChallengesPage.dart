@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:zenopay/Components/CustomBottomNav.dart';
 import 'package:zenopay/Components/FullPageLoader.dart';
 import 'package:zenopay/models/challenge_model.dart';
+import 'package:zenopay/models/user_model.dart';
 import 'package:zenopay/services/challenge_service.dart';
 import 'package:zenopay/state/current_user.dart';
 
@@ -22,7 +23,6 @@ class _ChallengesPageState extends State<ChallengesPage> {
   List<ForYouAvailableItem> dailyChallenges = [];
   bool isLoading = true;
   int totalXP = 0;
-  int streakDays = 12;
 
   @override
   void initState() {
@@ -192,30 +192,36 @@ class _ChallengesPageState extends State<ChallengesPage> {
             ],
           ),
           const Spacer(),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF1F5F9),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Row(
-              children: [
-                const Icon(
-                  Icons.local_fire_department_rounded,
-                  color: Color(0xFFF97316),
-                  size: 18,
+          ValueListenableBuilder<ZenoUser?>(
+            valueListenable: CurrentUser.notifier,
+            builder: (context, user, _) {
+              final streak = user?.profile?.currentStreak ?? 0;
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(20),
                 ),
-                const SizedBox(width: 4),
-                Text(
-                  '$streakDays',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF1E293B),
-                  ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.local_fire_department_rounded,
+                      color: Color(0xFFF97316),
+                      size: 18,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      '$streak',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF1E293B),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              );
+            },
           ),
         ],
       ),
